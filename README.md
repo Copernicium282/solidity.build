@@ -28,7 +28,7 @@ Inspired by [eth.build](https://eth.build) and [MIT Scratch](https://scratch.mit
 
 ## Background
 
-Learning Solidity is somewhat hard. Most of the tools such as Remix, Hardhat and Foundry assumes that you already understand the language. // add a line regarding solidity by example stating that it is good and gets the job done, but is still text based or whatever and that i plan on including those also as example modules that can be imported to make the learning experience much better.
+Learning Solidity is somewhat hard. Most of the tools such as Remix, Hardhat and Foundry assumes that you already understand the language. Solidity by Example is good and gets the job done, but it is still text-based; I also plan on including those as example modules in the future that can be imported to make the learning experience much better.
 
 solidity.build aims to bridge that gap. Each Solidity concept - state variables, functions, modifiers, events - is represented as a block (to be made draggable in a future commit). You can snap them together, fill in the fields, and the app generates the corresponding Solidity code on the right. The goal is not to replace writing code, but to make the structure of a contract more intuitive before writing one yourself.
 
