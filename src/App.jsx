@@ -9,20 +9,30 @@ function App() {
    const [isCodeOpen, setIsCodeOpen] = useState(true);
    const [isFullscreenCode, setIsFullscreenCode] = useState(false);
    const [generatedCode, setGeneratedCode] = useState("");
+   const [solVersion, setSolVersion] = useState("0.8.30");
 
    const generateSolidity = () => {
       let code = "// SPDX-License-Identifier: MIT\n";
-      code += "pragma solidity ^0.8.20;\n\n";
+      code += `pragma solidity ${solVersion};\n\n`;
       const contractBlock = blocks.find(b => b.type === 'Contract');
       if (contractBlock) {
          const contractName = contractBlock.data?.name || "MyContract";
          code += `contract ${contractName} {\n`;
          blocks.filter(b => b.type !== 'Contract').forEach(b => {
             const name = b.data?.name || "val";
-            if (b.type === 'State Var') code += `    uint256 public ${name};\n`;
+            if (b.type === 'State Var') {
+               const varType = b.data?.varType || "uint256";
+               const visibility = b.data?.visibility || "public";
+               const varName = b.data?.name || "myVar";
+               code += `    ${varType} ${visibility} ${varName};\n`;
+            }
             if (b.type === 'Mapping') code += `    mapping(address => uint256) public ${name};\n`;
             if (b.type === 'Constructor') code += "\n    constructor() {\n        // Logic\n    }\n";
-            if (b.type === 'Function') code += `\n    function ${b.data?.name || 'myFunc'}() public {\n        // Logic\n    }\n`;
+            if (b.type === 'Function') {
+               const visibility = b.data?.visibility || "public";
+               const funcName = b.data?.name || "myFunc";
+               code += `\n    function ${funcName}() ${visibility} {\n        // Logic\n    }\n`;
+            }
          });
          code += "\n}";
       } else {
@@ -33,7 +43,7 @@ function App() {
 
    useEffect(() => {
       generateSolidity();
-   }, [blocks]);
+   }, [blocks, solVersion]);
 
    const addBlock = (type) => {
       const newBlock = {
@@ -68,6 +78,8 @@ function App() {
                onUpdateBlock={updateBlock}
                onRemoveBlock={removeBlock}
                isCodeOpen={isCodeOpen}
+               solVersion={solVersion}
+               setSolVersion={setSolVersion}
                onToggleCode={() => setIsCodeOpen(!isCodeOpen)}
             />
          </div>

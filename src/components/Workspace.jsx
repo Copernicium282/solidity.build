@@ -1,6 +1,6 @@
 import { Play, Code, ChevronRight, ChevronDown, LayoutPanelTop, Trash2 } from 'lucide-react';
 
-export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBlock, onRemoveBlock }) {
+export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBlock, onRemoveBlock, solVersion, setSolVersion }) {
 
   const getBlockColor = (type) => {
     switch (type) {
@@ -20,6 +20,16 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
           <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400">Canvas</h2>
           <div className="h-4 w-px bg-gray-800" />
           <span className="text-sm font-medium text-gray-400">Main.sol</span>
+
+          <div className="flex items-center gap-2 ml-2">
+            <span className="text-sm font-medium text-gray-500">Compiler Version:</span>
+            <input
+              className="bg-transparent border-none outline-none text-sm font-medium text-[#569cd6] w-16 p-0"
+              value={solVersion}
+              onChange={(e) => setSolVersion(e.target.value)}
+              spellCheck="false"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -73,12 +83,43 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
                         {isOpen ? <ChevronDown size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
                       </button>
 
-                      <span className="uppercase text-[9px] font-black tracking-tighter text-gray-400/50 min-w-[64px]">
+                      <span className="font-code uppercase text-[13px] font-black tracking-tighter text-gray-400/80 min-w-[90px] leading-relaxed">
                         {block.type}
                       </span>
 
+                      {block.type === 'State Var' && (
+                        <select
+                          className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#569cd6] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[95px] h-[28px] text-left shadow-inner"
+                          value={block.data?.varType || 'uint256'}
+
+                          onChange={(e) => onUpdateBlock(block.id, { varType: e.target.value })}
+                        >
+                          <option value="uint256" className="bg-[#1a1a1a] text-white">uint256</option>
+                          <option value="string" className="bg-[#1a1a1a] text-white">string</option>
+                          <option value="bool" className="bg-[#1a1a1a] text-white">bool</option>
+                          <option value="address" className="bg-[#1a1a1a] text-white">address</option>
+                        </select>
+                      )}
+
+                      {(block.type === 'State Var' || block.type === 'Function') && (
+                        <select
+                          className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#6ed668] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[85px] h-[28px] text-left"
+                          value={block.data?.visibility || 'public'}
+                          onChange={(e) => onUpdateBlock(block.id, { visibility: e.target.value })}
+                        >
+                          <option value="public" className="bg-[#1a1a1a] text-white">public</option>
+                          <option value="private" className="bg-[#1a1a1a] text-white">private</option>
+                          <option value="internal" className="bg-[#1a1a1a] text-white">internal</option>
+
+                          {/* 🔮 Clever Trick: Show external ONLY if it's a function */}
+                          {block.type === 'Function' && (
+                            <option value="external" className="bg-[#1a1a1a] text-white">external</option>
+                          )}
+                        </select>
+                      )}
+
                       <input
-                        className="bg-transparent border-none outline-none font-bold text-white focus:text-blue-200 transition-colors w-full p-0"
+                        className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0"
                         value={block.data?.name || ''}
                         onChange={(e) => onUpdateBlock(block.id, { name: e.target.value })}
                         spellCheck="false"
@@ -99,17 +140,19 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
                     </div>
                   </div>
 
-                  {isOpen && (
-                    <div className="px-14 py-2 border-t border-white/5 bg-black/10 text-[11px] text-gray-500 italic pb-5">
-                      {block.type === 'Function' ? '// Click the explorer to add logic inside...' : '// Block properties...'}
-                    </div>
-                  )}
+                  {
+                    isOpen && (
+                      <div className="px-14 py-2 border-t border-white/5 bg-black/10 text-[11px] text-gray-500 italic pb-5">
+                        {block.type === 'Function' ? '// Click the explorer to add logic inside...' : '// Block properties...'}
+                      </div>
+                    )
+                  }
                 </div>
               );
             })}
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

@@ -6,14 +6,11 @@ export default function CodePanel({ code = "" }) {
       {/* Polished Header (Full Width) */}
       <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-[#0d0d0d] flex-shrink-0 w-full">
         <div className="flex items-center gap-3">
-           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse transition-all shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-           <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 font-sans leading-none">
-             Solidity Preview
-           </h2>
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse transition-all shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 font-sans leading-none">
+            Solidity Preview
+          </h2>
         </div>
-        <span className="text-[10px] bg-white/5 text-gray-400 px-3 py-1 rounded-full font-mono border border-gray-800 leading-none">
-           v0.8.20
-        </span>
       </div>
 
       {/* FIXED: Stable Editor Container */}
@@ -35,11 +32,11 @@ export default function CodePanel({ code = "" }) {
             padding: { top: 12, bottom: 20 },
             wordWrap: "on",
             scrollbar: {
-               vertical: 'visible',
-               horizontal: 'visible',
-               useShadows: false,
-               verticalScrollbarSize: 8,
-               horizontalScrollbarSize: 8
+              vertical: 'visible',
+              horizontal: 'visible',
+              useShadows: false,
+              verticalScrollbarSize: 8,
+              horizontalScrollbarSize: 8
             }
           }}
           value={code || "// Drag blocks from the explorer to generate code..."}

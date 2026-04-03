@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Hardhat](https://img.shields.io/badge/Local-Hardhat-orange?style=flat-square)](https://hardhat.org)
 
-solidity.build is a visual, block-based smart contract builder for Ethereum. Drag blocks onto a canvas, configure them inline, and watch Solidity code generate in real time. Compile it in the browser. Deploy it to a local node, or copy the code over to Remix IDE. No prior Solidity experience required. I plan on making it a great learning tool for those who are new to Solidity. 
+[solidity.build](https://copernicium282.github.io/solidity.build/) is a visual, block-based smart contract builder for Ethereum. Drag blocks onto a canvas, configure them inline, and watch Solidity code generate in real time. Compile it in the browser. Deploy it to a local node, or copy the code over to Remix IDE. No prior Solidity experience required. I plan on making it a great learning tool for those who are new to Solidity. 
 
 Inspired by [eth.build](https://eth.build) and [MIT Scratch](https://scratch.mit.edu).
 
