@@ -1,6 +1,6 @@
 import {
   Square, Box, Zap, Settings, Globe,
-  ChevronDown, Plus, FolderOpen
+  ChevronDown, Plus, FolderOpen, Slash
 } from 'lucide-react';
 
 export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }) {
@@ -18,6 +18,7 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
       isOpen: true,
       blocks: [
         { name: 'State Var', color: 'bg-stateVar', icon: <Square size={14} /> },
+        { name: 'Comment', color: 'bg-stateVar', icon: <Slash size={14} /> },
         { name: 'Mapping', color: 'bg-stateVar', icon: <Globe size={14} /> },
       ]
     },

@@ -24,7 +24,12 @@ function App() {
                const varType = b.data?.varType || "uint256";
                const visibility = b.data?.visibility || "public";
                const varName = b.data?.name || "myVar";
-               code += `    ${varType} ${visibility} ${varName};\n`;
+               const value = b.data?.value ? ` = ${b.data.value}` : "";
+               code += `    ${varType} ${visibility} ${varName}${value};\n`;
+            }
+            if (b.type === 'Comment') {
+               const text = b.data?.text || "comment here";
+               code += `\n    /*\n     ${text.split('\n').join('\n     ')}\n    */\n`;
             }
             if (b.type === 'Mapping') code += `    mapping(address => uint256) public ${name};\n`;
             if (b.type === 'Constructor') code += "\n    constructor() {\n        // Logic\n    }\n";
