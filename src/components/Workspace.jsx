@@ -111,10 +111,22 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
                           <option value="private" className="bg-[#1a1a1a] text-white">private</option>
                           <option value="internal" className="bg-[#1a1a1a] text-white">internal</option>
 
-                          {/* 🔮 Clever Trick: Show external ONLY if it's a function */}
                           {block.type === 'Function' && (
                             <option value="external" className="bg-[#1a1a1a] text-white">external</option>
                           )}
+                        </select>
+                      )}
+
+                      {block.type === 'Function' && (
+                        <select
+                          className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#eab308] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[90px] h-[28px] text-left"
+                          value={block.data?.mutability || ''}
+                          onChange={(e) => onUpdateBlock(block.id, { mutability: e.target.value })}
+                        >
+                          <option value="" className="bg-[#1a1a1a] text-white">mutability</option>
+                          <option value="view" className="bg-[#1a1a1a] text-white">view</option>
+                          <option value="pure" className="bg-[#1a1a1a] text-white">pure</option>
+                          <option value="payable" className="bg-[#1a1a1a] text-white">payable</option>
                         </select>
                       )}
 
@@ -143,10 +155,43 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
                   {
                     isOpen && (
                       <div className="px-14 py-2 border-t border-white/5 bg-black/10 text-[11px] text-gray-500 italic pb-5">
-                        {block.type === 'Function' ? '// Click the explorer to add logic inside...' : '// Block properties...'}
+                        {block.type === 'Function' ? '// Click the body to add logic inside...' : '// Block properties...'}
                       </div>
                     )
                   }
+
+                  {isOpen && block.type === 'Function' && (
+                    <div className="px-14 py-4 border-t border-white/5 bg-black/30 flex flex-col gap-6">
+
+                      {/* Returns Input */}
+                      <div className="flex items-center gap-4">
+                        <span className="font-code uppercase text-[12px] font-black tracking-tighter text-gray-500/60 min-w-[70px]">
+                          Returns
+                        </span>
+                        <input
+                          className="bg-transparent border-b border-gray-800 text-[13px] text-[#ce9178] w-full font-code outline-none focus:border-func/30 transition-all"
+                          value={block.data?.returns || ''}
+                          onChange={(e) => onUpdateBlock(block.id, { returns: e.target.value })}
+                          placeholder="uint256..."
+                          spellCheck="false"
+                        />
+                      </div>
+                      {/* Logic */}
+                      <div className="flex flex-col gap-2">
+                        <span className="font-code uppercase text-[12px] font-black tracking-tighter text-gray-500/60 min-w-[70px]">
+                          Logic
+                        </span>
+                        <textarea
+                          rows="3"
+                          className="font-code bg-transparent border-none outline-none text-[13px] text-[#9cdcfe] w-full resize-none leading-relaxed placeholder:opacity-20"
+                          placeholder="// count += 1;"
+                          value={block.data?.body || ''}
+                          onChange={(e) => onUpdateBlock(block.id, { body: e.target.value })}
+                          spellCheck="false"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

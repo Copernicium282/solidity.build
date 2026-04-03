@@ -30,8 +30,16 @@ function App() {
             if (b.type === 'Constructor') code += "\n    constructor() {\n        // Logic\n    }\n";
             if (b.type === 'Function') {
                const visibility = b.data?.visibility || "public";
-               const funcName = b.data?.name || "myFunc";
-               code += `\n    function ${funcName}() ${visibility} {\n        // Logic\n    }\n`;
+               const mutability = b.data?.mutability || "";
+               const name = b.data?.name || "myFunc";
+               const returns = b.data?.returns ? ` returns (${b.data.returns})` : "";
+               const rawBody = b.data?.body || "";
+               const indentedBody = rawBody
+                  .split('\n')
+                  .map(line => `        ${line}`)
+                  .join('\n');
+
+               code += `\n    function ${name}() ${visibility} ${mutability}${returns} {\n${indentedBody}\n    }\n`;
             }
          });
          code += "\n}";

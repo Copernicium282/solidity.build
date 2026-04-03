@@ -120,6 +120,8 @@ The block tree is used for Solidity generation for the `useCodeGenerator` functi
 - [ ] OpenZeppelin block templates
 - [ ] Backend persistence (Node.js + PostgreSQL)
 
+Note: the current roadmap kinda doesn't make that much sense, it's just a list of features I want to add. I'm currently using the Solidity By Example code as a roadmap, implementing stuff that can generate the code for each example atleast.
+
 ## Contributing
 
 Contributions are welcome. If you find a bug or want to propose a feature, please feel free open an issue, as this is my first major React project and I'm sure there are many things I haven't thought of.
