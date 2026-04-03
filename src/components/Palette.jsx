@@ -27,6 +27,7 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
       isOpen: true,
       blocks: [
         { name: 'Function', color: 'bg-func', icon: <Zap size={14} /> },
+        { name: 'Logic', color: 'bg-[#569cd6]', icon: <Zap size={14} /> },
         { name: 'Modifier', color: 'bg-modifier', icon: <Settings size={14} /> },
       ]
     }
@@ -68,12 +69,6 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="p-4 border-t border-gray-800 bg-[#0d0d0d]/50">
-        <p className="text-[10px] text-gray-700 font-mono tracking-tighter">
-          SOURCE: solidity.build/v1
-        </p>
       </div>
     </div>
   );

@@ -3,76 +3,202 @@ import Sidebar from "./components/Sidebar";
 import Palette from "./components/Palette";
 import Workspace from "./components/Workspace";
 import CodePanel from "./components/CodePanel";
+import { DndContext, pointerWithin, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
 
 function App() {
    const [blocks, setBlocks] = useState([]);
    const [isCodeOpen, setIsCodeOpen] = useState(true);
    const [isFullscreenCode, setIsFullscreenCode] = useState(false);
    const [generatedCode, setGeneratedCode] = useState("");
-   const [solVersion, setSolVersion] = useState("0.8.30");
+   const [solVersion, setSolVersion] = useState("^0.8.30");
+
+   const sensors = useSensors(
+      useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+      useSensor(KeyboardSensor)
+   );
+
+   const handleDragEnd = (event) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const activeId = String(active.id);
+      const overId = String(over.id);
+
+      // Clone tree
+      const newBlocks = structuredClone(blocks);
+
+      // Remove from current position
+      const findAndRemove = (list, id) => {
+         for (let i = 0; i < list.length; i++) {
+            if (String(list[i].id) === id) return list.splice(i, 1)[0];
+            if (list[i].children) {
+               const found = findAndRemove(list[i].children, id);
+               if (found) return found;
+            }
+         }
+      };
+
+      // Find a block's parent list and index
+      const findBlockLocation = (list, id) => {
+         for (let i = 0; i < list.length; i++) {
+            if (String(list[i].id) === id) return { parent: list, index: i };
+            if (list[i].children) {
+               const found = findBlockLocation(list[i].children, id);
+               if (found) return found;
+            }
+         }
+         return null;
+      };
+
+      // Find a block by ID
+      const findBlock = (list, id) => {
+         for (const b of list) {
+            if (String(b.id) === id) return b;
+            if (b.children) {
+               const found = findBlock(b.children, id);
+               if (found) return found;
+            }
+         }
+         return null;
+      };
+
+      const snatched = findAndRemove(newBlocks, activeId);
+      if (!snatched) return;
+
+      // Determine where to insert
+      if (overId === 'workspace-drop') {
+         // Dropped on empty workspace — add to root
+         newBlocks.push(snatched);
+      } else if (overId.startsWith('drop-')) {
+         // Dropped on a container's drop zone — insert as child
+         const parentId = overId.slice(5);
+         const parent = findBlock(newBlocks, parentId);
+         if (parent) {
+            if (!parent.children) parent.children = [];
+            parent.children.push(snatched);
+         } else {
+            newBlocks.push(snatched);
+         }
+      } else {
+         // Dropped on another block — insert before it
+         const location = findBlockLocation(newBlocks, overId);
+         if (location) {
+            location.parent.splice(location.index, 0, snatched);
+         } else {
+            newBlocks.push(snatched);
+         }
+      }
+
+      setBlocks(newBlocks);
+      console.log("DROP:", activeId, "→", overId);
+   };
 
    const generateSolidity = () => {
       let code = "// SPDX-License-Identifier: MIT\n";
       code += `pragma solidity ${solVersion};\n\n`;
-      const contractBlock = blocks.find(b => b.type === 'Contract');
-      if (contractBlock) {
-         const contractName = contractBlock.data?.name || "MyContract";
-         code += `contract ${contractName} {\n`;
-         blocks.filter(b => b.type !== 'Contract').forEach(b => {
-            const name = b.data?.name || "val";
-            if (b.type === 'State Var') {
-               const varType = b.data?.varType || "uint256";
-               const visibility = b.data?.visibility || "public";
-               const varName = b.data?.name || "myVar";
-               const value = b.data?.value ? ` = ${b.data.value}` : "";
-               code += `    ${varType} ${visibility} ${varName}${value};\n`;
+      const renderList = (blockList, indent = "") => {
+         let output = "";
+         blockList.forEach((b) => {
+            // Contract
+            if (b.type === "Contract") {
+               output += `${indent}contract ${b.data?.name || "MyContract"} {\n`;
+               output += renderList(b.children || [], indent + "    "); // recursion
+               output += `${indent}}\n\n`;
             }
-            if (b.type === 'Comment') {
-               const text = b.data?.text || "comment here";
-               code += `\n    /*\n     ${text.split('\n').join('\n     ')}\n    */\n`;
-            }
-            if (b.type === 'Mapping') code += `    mapping(address => uint256) public ${name};\n`;
-            if (b.type === 'Constructor') code += "\n    constructor() {\n        // Logic\n    }\n";
-            if (b.type === 'Function') {
-               const visibility = b.data?.visibility || "public";
-               const mutability = b.data?.mutability || "";
-               const name = b.data?.name || "myFunc";
-               const returns = b.data?.returns ? ` returns (${b.data.returns})` : "";
-               const rawBody = b.data?.body || "";
-               const indentedBody = rawBody
-                  .split('\n')
-                  .map(line => `        ${line}`)
-                  .join('\n');
+            // Function
+            else if (b.type === "Function") {
+               const vis = b.data?.visibility || "public";
+               const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
+               const ret = b.data?.returns ? ` returns (${b.data.returns})` : "";
 
-               code += `\n    function ${name}() ${visibility} ${mutability}${returns} {\n${indentedBody}\n    }\n`;
+               // Open the function
+               output += `\n${indent}function ${b.data?.name || "func"}() ${vis}${mut}${ret} {\n`;
+
+               // Call the kids recurser lol
+               output += renderList(b.children || [], indent + "    ");
+
+               // Close the function
+               output += `${indent}}\n`;
+            }
+            // Logic
+            else if (b.type === "Logic") {
+               const codeSnippet = b.data?.code || "";
+               // We indent every line of the snippet correctly
+               output += codeSnippet.split('\n').map(l => `${indent}${l}`).join('\n') + "\n";
+            }
+            // State Var
+            else if (b.type === "State Var") {
+               const type = b.data?.varType || "uint256";
+               const vis = b.data?.visibility || "public";
+               const val = b.data?.value ? ` = ${b.data.value}` : "";
+               output += `${indent}${type} ${vis} ${b.data?.name || "v"}${val};\n`;
+            }
+            // Mapping
+            else if (b.type === "Mapping") {
+               const type1 = b.data?.varType1 || "address";
+               const type2 = b.data?.varType2 || "uint256";
+               const vis = b.data?.visibility || "public";
+               const name = b.data?.name || "name";
+               output += `${indent}mapping(${type1} => ${type2}) ${vis} ${name};\n`;
+            }
+            // Comment
+            else if (b.type === "Comment") {
+               const text = b.data?.text || "comment here";
+               const commentLineStyle = text.split('\n').map(l => `${indent}    ${l}`).join('\n');
+               output += `\n${indent}/*\n${commentLineStyle}\n${indent}*/\n`;
+            }
+            // Constructor
+            else if (b.type === "Constructor") {
+               output += `\n${indent}constructor() {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
             }
          });
-         code += "\n}";
-      } else {
-         code += "// Drag a 'Contract' block to begin...";
-      }
-      setGeneratedCode(code);
+         return output;
+      };
+      const finalBody = renderList(blocks);
+      setGeneratedCode(code + finalBody);
    };
-
    useEffect(() => {
       generateSolidity();
    }, [blocks, solVersion]);
 
    const addBlock = (type) => {
+      let initialData = { isOpen: true };
+      if (type === 'Contract') initialData.name = "MyContract";
+      else if (type === 'Function') initialData.name = "myFunc";
+      else if (type === 'State Var') initialData.name = "newVar";
+      else if (type === 'Mapping') {
+         initialData.name = "myMapping";
+         initialData.varType1 = "address";
+         initialData.varType2 = "uint256";
+      }
       const newBlock = {
-         id: Date.now(),
+         id: `block-${Date.now()}`,
          type,
-         data: { name: type === 'Contract' ? 'MyContract' : type, isOpen: true }
+         data: initialData,
+         children: []
       };
       setBlocks([...blocks, newBlock]);
    };
 
    const updateBlock = (id, newData) => {
-      setBlocks(blocks.map(b => b.id === id ? { ...b, data: { ...b.data, ...newData } } : b));
+      const walk = (list) =>
+         list.map(b => {
+            // surface-level check
+            if (b.id === id) return { ...b, data: { ...b.data, ...newData } };
+            // Check the kids. (lmao)
+            if (b.children) return { ...b, children: walk(b.children) };
+            return b;
+         });
+      setBlocks(walk(blocks));
    };
 
    const removeBlock = (id) => {
-      setBlocks(blocks.filter(block => block.id !== id));
+      const walk = (list) =>
+         list.filter(b => b.id !== id) // Remove if match
+            .map(b => b.children ? { ...b, children: walk(b.children) } : b); // Recurse
+      setBlocks(walk(blocks));
    };
 
    return (
@@ -86,18 +212,20 @@ function App() {
 
          <div className={`transition-all duration-300 flex flex-col bg-[#111] min-w-0
                        ${isFullscreenCode ? 'w-0 flex-0 opacity-0' : 'flex-1 opacity-100'}`}>
-            <Workspace
-               blocks={blocks}
-               onUpdateBlock={updateBlock}
-               onRemoveBlock={removeBlock}
-               isCodeOpen={isCodeOpen}
-               solVersion={solVersion}
-               setSolVersion={setSolVersion}
-               onToggleCode={() => setIsCodeOpen(!isCodeOpen)}
-            />
+            <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
+               <Workspace
+                  blocks={blocks}
+                  onUpdateBlock={updateBlock}
+                  onRemoveBlock={removeBlock}
+                  isCodeOpen={isCodeOpen}
+                  solVersion={solVersion}
+                  setSolVersion={setSolVersion}
+                  onToggleCode={() => setIsCodeOpen(!isCodeOpen)}
+               />
+            </DndContext>
          </div>
 
-         {/* FIXED: Added 'flex flex-col' here to force full height for CodePanel */}
+         {/* Code Panel */}
          <div className={`transition-all duration-500 border-l border-gray-800 bg-[#050505] overflow-hidden flex flex-col
                        ${isFullscreenCode ? 'flex-1' : (isCodeOpen ? 'w-[450px]' : 'w-0')}`}>
             <CodePanel code={generatedCode} />

@@ -3,7 +3,7 @@ import Editor from "@monaco-editor/react";
 export default function CodePanel({ code = "" }) {
   return (
     <div className="flex-1 flex flex-col bg-[#050505] min-h-0 w-full overflow-hidden">
-      {/* Polished Header (Full Width) */}
+      {/* Header (full width) */}
       <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-[#0d0d0d] flex-shrink-0 w-full">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse transition-all shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
@@ -13,7 +13,7 @@ export default function CodePanel({ code = "" }) {
         </div>
       </div>
 
-      {/* FIXED: Stable Editor Container */}
+      {/* Editor Container */}
       <div className="flex-1 relative bg-[#050505] w-full min-h-0 overflow-hidden">
         <Editor
           height="100%"
