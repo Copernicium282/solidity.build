@@ -1,5 +1,5 @@
 import {
-  Square, Box, Zap, Settings, Globe, ChevronDown, ChevronRight, Plus, FolderOpen, Slash, Lightbulb, Infinity, Repeat
+  Square, Box, Zap, Settings, Globe, ChevronDown, ChevronRight, Plus, FolderOpen, Slash, Lightbulb, Infinity, Repeat, List, Layers, Edit2, BoxSelect
 } from 'lucide-react';
 
 export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }) {
@@ -9,6 +9,8 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
       isOpen: true,
       blocks: [
         { name: 'Contract', color: 'bg-contract', icon: <Box size={14} /> },
+        { name: 'Library', color: 'bg-library', icon: <Globe size={14} /> },
+        { name: 'Comment', color: 'bg-comment', icon: <Slash size={14} /> },
         { name: 'Constructor', color: 'bg-constructor', icon: <Plus size={14} /> },
       ]
     },
@@ -17,8 +19,11 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
       isOpen: true,
       blocks: [
         { name: 'State Var', color: 'bg-stateVar', icon: <Square size={14} /> },
-        { name: 'Comment', color: 'bg-comment', icon: <Slash size={14} /> },
         { name: 'Mapping', color: 'bg-mapping', icon: <Globe size={14} /> },
+        { name: 'Array', color: 'bg-array', icon: <List size={14} /> },
+        { name: 'Enum', color: 'bg-enum', icon: <Layers size={14} /> },
+        { name: 'Struct', color: 'bg-struct', icon: <BoxSelect size={14} /> },
+        { name: 'User-Defined Value Type', color: 'bg-udvt', icon: <Edit2 size={14} /> },
       ]
     },
     {

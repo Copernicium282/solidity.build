@@ -22,6 +22,11 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
       case 'Else': return 'border-else bg-else/10';
       case 'Ternary': return 'border-ternary bg-ternary/10';
       case 'For': return 'border-for bg-for/10';
+      case 'Array': return 'border-array bg-array/10';
+      case 'Enum': return 'border-enum bg-enum/10';
+      case 'Library': return 'border-library bg-library/10';
+      case 'User-Defined Value Type': return 'border-udvt bg-udvt/10';
+      case 'Struct': return 'border-struct bg-struct/10';
       default: return 'border-gray-800 bg-gray-900';
     }
   };

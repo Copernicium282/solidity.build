@@ -97,7 +97,9 @@ function App() {
       code += `pragma solidity ${solVersion};\n\n`;
       const renderList = (blockList, indent = "") => {
          let output = "";
-         blockList.forEach((b) => {
+         blockList.forEach((b, idx) => {
+            const nextBlock = blockList[idx + 1];
+            const followedByElse = nextBlock && (nextBlock.type === 'ElseIf' || nextBlock.type === 'Else');
             // Contract
             if (b.type === "Contract") {
                output += `${indent}contract ${b.data?.name || "MyContract"} {\n`;
@@ -123,12 +125,12 @@ function App() {
             // Logic
             else if (b.type === "Logic") {
                const codeSnippet = b.data?.code || "";
-               // We indent every line of the snippet correctly
+               // Indent every line of the snippet correctly
                output += codeSnippet.split('\n').map(l => `${indent}${l}`).join('\n') + "\n";
             }
             // State Var
             else if (b.type === "State Var") {
-               const type = b.data?.varType || "uint256";
+               const baseType = b.data?.isCustomType ? (b.data?.customType || "Status") : (b.data?.varType || "uint256");
                const vis = b.data?.visibility || "public";
                const isConst = b.data?.isConst ? "constant" : "";
                const isImm = b.data?.isImm ? "immutable" : "";
@@ -143,15 +145,22 @@ function App() {
                }
 
                const val = b.data?.value ? ` = ${b.data.value}` : "";
-               output += `${indent}${type} ${vis}${modSpacer} ${finalName}${val};\n`;
+               output += `${indent}${baseType} ${vis}${modSpacer} ${finalName}${val};\n`;
             }
             // Mapping
             else if (b.type === "Mapping") {
-               const type1 = b.data?.varType1 || "address";
-               const type2 = b.data?.varType2 || "uint256";
+               const types = b.data?.types || ["address", "uint256"];
                const vis = b.data?.visibility || "public";
-               const name = b.data?.name || "name";
-               output += `${indent}mapping(${type1} => ${type2}) ${vis} ${name};\n`;
+               const name = b.data?.name || "myMap";
+
+               // Recursively build if required: mapping(k => mapping(k2 => v))
+               const buildMapping = (typeList) => {
+                  if (typeList.length <= 1) return typeList[0];
+                  const [current, ...rest] = typeList;
+                  return `mapping(${current} => ${buildMapping(rest)})`;
+               };
+
+               output += `${indent}${buildMapping(types)} ${vis} ${name};\n`;
             }
             // Comment
             else if (b.type === "Comment") {
@@ -215,6 +224,43 @@ function App() {
                const f = b.data?.falseVal || "2";
                output += `${indent}return ${cond} ? ${t} : ${f};\n`;
             }
+            // Array
+            else if (b.type === "Array") {
+               const baseType = b.data?.isCustomType ? (b.data?.customType || "Status") : (b.data?.itemType || "uint256");
+               const size = b.data?.fixedSize || ""; // dynamic if empty
+               const vis = b.data?.visibility || "public";
+               const name = b.data?.name || "arr";
+               const val = b.data?.value ? ` = ${b.data.value}` : "";
+
+               output += `${indent}${baseType}[${size}] ${vis} ${name}${val};\n`;
+            }
+            else if (b.type === "Enum") {
+               const members = b.data?.members || ["Pending", "Shipped"];
+               output += `${indent}enum ${b.data?.name || "Status"} {\n`;
+               output += members.map(m => `${indent}    ${m}`).join(",\n");
+               output += `\n${indent}}\n\n`;
+            }
+            // Library
+            else if (b.type === "Library") {
+               output += `\n${indent}library ${b.data?.name || "MyLibrary"} {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
+            }
+            // User-Defined Value Types
+            else if (b.type === "User-Defined Value Type") {
+               const name = b.data?.name || "Duration";
+               const sub = b.data?.subType || "uint64";
+               output += `${indent}type ${name} is ${sub};\n`;
+            }
+            // Struct
+            else if (b.type === "Struct") {
+               const name = b.data?.name || "Todo";
+               const members = b.data?.members || [{ type: "string", name: "text" }];
+
+               output += `\n${indent}struct ${name} {\n`;
+               output += members.map(m => `${indent}    ${m.type} ${m.name};`).join("\n");
+               output += `\n${indent}}\n`;
+            }
          });
          return output;
       };
@@ -231,9 +277,9 @@ function App() {
       else if (type === 'Function') initialData.name = "myFunc";
       else if (type === 'State Var') initialData.name = "newVar";
       else if (type === 'Mapping') {
-         initialData.name = "myMapping";
-         initialData.varType1 = "address";
-         initialData.varType2 = "uint256";
+         initialData.name = "myMap";
+         initialData.types = ["address", "uint256"]; // New array structure
+         initialData.visibility = "public";
       }
       else if (type === 'While') {
          initialData.condition = "true";
@@ -248,6 +294,24 @@ function App() {
          initialData.condition = "_x < 10";
          initialData.trueVal = "1";
          initialData.falseVal = "2";
+      }
+      else if (type === 'Array') {
+         initialData.itemType = "uint256";
+         initialData.fixedSize = ""; // dynamic by default
+         initialData.name = "arr";
+      }
+      else if (type === 'Enum') {
+         initialData.name = "Status";
+         initialData.members = ["Pending", "Shipped"];
+      }
+      else if (type === 'Library') initialData.name = "MyLibrary";
+      else if (type === 'User-Defined Value Type') {
+         initialData.name = "Duration";
+         initialData.subType = "uint64";
+      }
+      else if (type === 'Struct') {
+         initialData.name = "Todo";
+         initialData.members = [{ type: "string", name: "text" }, { type: "bool", name: "completed" }];
       }
       const newBlock = {
          id: `block-${Date.now()}`,
