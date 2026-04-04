@@ -109,11 +109,11 @@ The block tree is used for Solidity generation for the `useCodeGenerator` functi
 
 ## Roadmap (also to be extended in the future)
 
-- [ ] Visual block editor with drag and drop
+- [X] Visual block editor with drag and drop
 - [X] Live Solidity code generation
 - [ ] In-browser compilation via solc-js
 - [ ] Local Hardhat deployment and function calling
-- [ ] Function body blocks (assignments, conditionals, loops)
+- [X] Function body blocks (assignments, conditionals, loops)
 - [ ] Inheritance support
 - [ ] Testnet deployment (Sepolia)
 - [ ] Shareable contracts via URL encoding

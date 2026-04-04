@@ -29,6 +29,10 @@
   --color-library: #06b6d4;
   --color-udvt: #ec4899;
   --color-struct: #7c3aed;
+  --color-error: #ef4444;
+  --color-event: #f59e0b;
+  --color-interface: #0ea5e9;
+  --color-safety: #e11d48;
 
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }

@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core';
 
 export default function BlockBody({ block, onUpdate, onRemove, getColor }) {
-  const isContainer = ['Contract', 'Function', 'Constructor', 'Modifier', 'While', 'For', 'If', 'ElseIf', 'Else', 'Library'].includes(block.type);
+  const isContainer = ['Contract', 'Function', 'Constructor', 'Modifier', 'While', 'For', 'If', 'ElseIf', 'Else', 'Library', 'Interface', 'Receive', 'Fallback'].includes(block.type);
 
   const { setNodeRef, isOver } = useDroppable({
     id: `drop-${block.id}`,

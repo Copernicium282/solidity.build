@@ -47,6 +47,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
                 <option value="string" className="bg-[#1a1a1a] text-white">string</option>
                 <option value="bool" className="bg-[#1a1a1a] text-white">bool</option>
                 <option value="address" className="bg-[#1a1a1a] text-white">address</option>
+                <option value="address payable" className="bg-[#1a1a1a] text-white">address payable</option>
                 <option value="bytes1" className="bg-[#1a1a1a] text-white">bytes1</option>
               </select>
             ) : (
@@ -140,7 +141,45 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             </select>
 
             <input
-              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0"
+              className="font-code bg-transparent border-none outline-none text-[12px] text-orange-400/80 w-32 italic"
+              value={block.data?.modifiers || ''}
+              onChange={(e) => onUpdate(block.id, { modifiers: e.target.value })}
+              placeholder="onlyOwner..."
+              spellCheck="false"
+            />
+
+            {/* Virtual & Override Toggles */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onUpdate(block.id, { isVirtual: !block.data?.isVirtual })}
+                className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded transition-all ${block.data?.isVirtual ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-gray-600 hover:text-gray-400'}`}
+                title="Mark as Virtual"
+              >
+                virt
+              </button>
+
+              <div className="flex items-center gap-1 bg-white/5 rounded px-1 group">
+                <button
+                  onClick={() => onUpdate(block.id, { isOverride: !block.data?.isOverride })}
+                  className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded transition-all ${block.data?.isOverride ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-600 hover:text-gray-400'}`}
+                  title="Override Parent"
+                >
+                  over
+                </button>
+                {block.data?.isOverride && (
+                  <input
+                    className="font-code text-[10px] text-emerald-400/80 w-16 bg-transparent border-none outline-none italic"
+                    value={block.data?.overrideParents || ''}
+                    onChange={(e) => onUpdate(block.id, { overrideParents: e.target.value })}
+                    placeholder="(A, B)"
+                    spellCheck="false"
+                  />
+                )}
+              </div>
+            </div>
+
+            <input
+              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0 flex-1"
               value={block.data?.name || ''}
               onChange={(e) => onUpdate(block.id, { name: e.target.value })}
               placeholder="myFunction"
@@ -165,6 +204,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
                     }}
                   >
                     <option value="address">address</option>
+                    <option value="address payable">address payable</option>
                     <option value="uint256">uint256</option>
                     <option value="bool">bool</option>
                     <option value="string">string</option>
@@ -296,6 +336,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
               >
                 <option value="uint256">uint256</option>
                 <option value="address">address</option>
+                <option value="address payable">address payable</option>
                 <option value="bool">bool</option>
               </select>
             ) : (
@@ -332,6 +373,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             >
               <option value="public">public</option>
               <option value="private">private</option>
+              <option value="internal">internal</option>
             </select>
 
             <input
@@ -462,8 +504,8 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        { /* Contract, Constructor, Modifier, Comment, Logic */}
-        {(block.type === 'Contract' || block.type === 'Constructor' || block.type === 'Modifier' || block.type === 'Comment' || block.type === 'Logic') && (
+        { /* Modifier, Comment, Logic (Contract/Constructor have specialized headers now) */}
+        {(block.type === 'Modifier' || block.type === 'Comment' || block.type === 'Logic') && (
           <input
             className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0"
             value={block.data?.name || ''}
@@ -474,7 +516,214 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           />
         )}
 
-        {/* Params to break your head */}
+        {/* ErrorDef header (Reuse Struct params logic) */}
+        {block.type === 'ErrorDef' && (
+          <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
+            <span className="text-rose-500 font-bold">error</span>
+            <input
+              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white w-24"
+              value={block.data?.name || ''}
+              onChange={(e) => onUpdate(block.id, { name: e.target.value })}
+              placeholder="ErrorName"
+            />
+            <span className="text-gray-600 font-bold">(</span>
+            <div className="flex items-center gap-1 flex-wrap">
+              {(block.data?.params || []).map((p, idx) => (
+                <div key={idx} className="flex items-center gap-1 bg-white/5 border border-white/5 rounded px-1 group">
+                  <input
+                    className="bg-transparent border-none outline-none text-[13px] text-[#569cd6] w-20 font-medium"
+                    value={p.type}
+                    onChange={(e) => {
+                      const newPs = [...block.data.params]; newPs[idx].type = e.target.value;
+                      onUpdate(block.id, { params: newPs });
+                    }}
+                  />
+                  <input
+                    className="bg-transparent border-none outline-none text-[13px] text-white/80 w-20"
+                    value={p.name}
+                    onChange={(e) => {
+                      const newPs = [...block.data.params]; newPs[idx].name = e.target.value;
+                      onUpdate(block.id, { params: newPs });
+                    }}
+                  />
+                  <button onClick={() => onUpdate(block.id, { params: block.data.params.filter((_, i) => i !== idx) })}
+                    className="text-[10px] text-gray-700 hover:text-red-400">×</button>
+                </div>
+              ))}
+              <button onClick={() => onUpdate(block.id, { params: [...(block.data?.params || []), { type: 'uint256', name: `arg${block.data.params.length}` }] })}
+                className="w-4 h-4 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-[12px] text-gray-500">+</button>
+            </div>
+            <span className="text-gray-600 font-bold">);</span>
+          </div>
+        )}
+        {/* Require/Assert/Revert headers */}
+        {(block.type === 'Require' || block.type === 'Assert' || block.type === 'Revert') && (
+          <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
+            <span className="text-rose-500 font-bold lowercase text-[14px]">
+              {block.type.toLowerCase()}(
+            </span>
+
+            {/* Condition (Only for Require/Assert) */}
+            {(block.type === 'Require' || block.type === 'Assert') && (
+              <input
+                className="bg-transparent border-none outline-none text-[13px] text-pink-400 w-32"
+                value={block.data?.condition || ''}
+                onChange={(e) => onUpdate(block.id, { condition: e.target.value })}
+                placeholder="condition"
+              />
+            )}
+            {/* Comma (Only for Require) */}
+            {block.type === 'Require' && <span className="text-gray-600">,</span>}
+            {/* Message */}
+            {(block.type === 'Require' || block.type === 'Revert' || block.type === 'Assert') && (
+              <input
+                className="bg-transparent border-none outline-none text-[13px] text-white/50 w-32"
+                value={block.data?.message || ''}
+                onChange={(e) => onUpdate(block.id, { message: e.target.value })}
+                placeholder="'error message'"
+              />
+            )}
+
+            <span className="text-rose-500 font-bold">);</span>
+          </div>
+        )}
+
+        {/* Event Header */}
+        {block.type === 'Event' && (
+          <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
+            <span className="text-amber-500 font-bold">event</span>
+            <input
+              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white w-24"
+              value={block.data?.name || ''}
+              onChange={(e) => onUpdate(block.id, { name: e.target.value })}
+              placeholder="Log"
+            />
+            <span className="text-gray-600 font-bold">(</span>
+
+            <div className="flex items-center gap-1 flex-wrap">
+              {(block.data?.params || []).map((p, idx) => (
+                <div key={idx} className="flex items-center gap-1 bg-white/5 border border-white/5 rounded px-1 group">
+                  {/* Type Input */}
+                  <input
+                    className="bg-transparent border-none outline-none text-[11px] text-[#569cd6] w-16"
+                    value={p.type}
+                    onChange={(e) => {
+                      const newPs = [...block.data.params]; newPs[idx].type = e.target.value;
+                      onUpdate(block.id, { params: newPs });
+                    }}
+                  />
+
+                  {/* Indexed Toggle */}
+                  <button
+                    onClick={() => {
+                      const newPs = [...block.data.params];
+                      newPs[idx].indexed = !newPs[idx].indexed;
+                      onUpdate(block.id, { params: newPs });
+                    }}
+                    className={`text-[9px] uppercase font-bold px-1 rounded transition-all ${p.indexed ? 'bg-amber-500 text-black' : 'text-gray-600 hover:text-gray-400'}`}
+                    title="Toggle Indexed"
+                  >
+                    idx
+                  </button>
+
+                  {/* Name Input */}
+                  <input
+                    className="bg-transparent border-none outline-none text-[11px] text-white/70 w-16"
+                    value={p.name}
+                    onChange={(e) => {
+                      const newPs = [...block.data.params]; newPs[idx].name = e.target.value;
+                      onUpdate(block.id, { params: newPs });
+                    }}
+                  />
+
+                  <button onClick={() => onUpdate(block.id, { params: block.data.params.filter((_, i) => i !== idx) })}
+                    className="text-[10px] text-gray-700 hover:text-red-400">×</button>
+                </div>
+              ))}
+              <button
+                onClick={() => onUpdate(block.id, { params: [...(block.data?.params || []), { type: 'address', name: `arg${block.data.params.length}`, indexed: false }] })}
+                className="w-4 h-4 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-[12px] text-gray-500"
+              >+</button>
+            </div>
+            <span className="text-gray-600 font-bold">);</span>
+          </div>
+        )}
+        {/* Emit Header */}
+        {block.type === 'Emit' && (
+          <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
+            <span className="text-amber-500 font-bold italic">emit</span>
+            <input className="..." value={block.data?.statement} placeholder="Log(msg.sender)" />
+            <span className="text-amber-500 font-bold">);</span>
+          </div>
+        )}
+
+        {/* Interface */}
+        {block.type === 'Interface' && (
+          <input
+            className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-sky-400 w-full"
+            value={block.data?.name || ''}
+            onChange={(e) => onUpdate(block.id, { name: e.target.value })}
+            placeholder="IMyInterface"
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        )}
+
+        { /* Contract */}
+        {block.type === 'Contract' && (
+          <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
+            <input
+              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-24 p-0"
+              value={block.data?.name || ''}
+              onChange={(e) => onUpdate(block.id, { name: e.target.value })}
+              placeholder="MyContract"
+              spellCheck="false"
+            />
+            <span className="text-[11px] font-black uppercase text-gray-600 tracking-widest mr-[-2px]">is</span>
+            <input
+              className="font-code bg-transparent border-none outline-none text-[12px] text-teal-400/80 w-32 italic"
+              value={block.data?.inheritance || ''}
+              onChange={(e) => onUpdate(block.id, { inheritance: e.target.value })}
+              placeholder="BaseX, BaseY..."
+              spellCheck="false"
+            />
+          </div>
+        )}
+
+        {/* Constructor Specialized UI */}
+        {block.type === 'Constructor' && (
+          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
+            <select
+              className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#eab308] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[90px] h-[28px] text-left"
+              value={block.data?.mutability || ''}
+              onChange={(e) => onUpdate(block.id, { mutability: e.target.value })}
+            >
+              <option value="" className="bg-[#1a1a1a] text-white">mutability</option>
+              <option value="payable" className="bg-[#1a1a1a] text-white">payable</option>
+            </select>
+          </div>
+        )}
+
+        {/* Receive */}
+        {block.type === 'Receive' && (
+          <span className="text-gray-500 text-[12px] font-medium uppercase tracking-widest italic ml-2">always external + payable</span>
+        )}
+
+        {/* Fallback */}
+        {block.type === 'Fallback' && (
+          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
+            <select
+              className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[11px] text-[#eab308] rounded px-1.5 py-0.5 uppercase"
+              value={block.data?.mutability || ''}
+              onChange={(e) => onUpdate(block.id, { mutability: e.target.value })}
+            >
+              <option value="">mutability</option>
+              <option value="payable">payable</option>
+            </select>
+            <span className="text-gray-500 text-[11px] uppercase ml-2">external</span>
+          </div>
+        )}
+
+        { /* Params to break your head */}
         {(block.type === 'Modifier' || block.type === 'Function' || block.type === 'Constructor') && (
           <div className="flex items-center gap-1 ml-2">
             <span className="text-gray-600 font-bold">(</span>
@@ -511,6 +760,17 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
               +
             </button>
             <span className="text-gray-600 font-bold">)</span>
+
+            {/* Constructor Initializers field */}
+            {block.type === 'Constructor' && (
+              <input
+                className="font-code bg-transparent border-none outline-none text-[12px] text-orange-400/80 w-32 italic ml-2"
+                value={block.data?.initializers || ''}
+                onChange={(e) => onUpdate(block.id, { initializers: e.target.value })}
+                placeholder="BaseX('msg')..."
+                spellCheck="false"
+              />
+            )}
           </div>
         )}
       </div>

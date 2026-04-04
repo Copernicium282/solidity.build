@@ -27,6 +27,15 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
       case 'Library': return 'border-library bg-library/10';
       case 'User-Defined Value Type': return 'border-udvt bg-udvt/10';
       case 'Struct': return 'border-struct bg-struct/10';
+      case 'ErrorDef':
+      case 'Require':
+      case 'Assert':
+      case 'Revert': return 'border-error bg-error/10';
+      case 'Event':
+      case 'Emit': return 'border-event bg-event/10';
+      case 'Interface': return 'border-interface bg-interface/10';
+      case 'Receive':
+      case 'Fallback': return 'border-safety bg-safety/10';
       default: return 'border-gray-800 bg-gray-900';
     }
   };

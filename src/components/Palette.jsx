@@ -1,5 +1,5 @@
 import {
-  Square, Box, Zap, Settings, Globe, ChevronDown, ChevronRight, Plus, FolderOpen, Slash, Lightbulb, Infinity, Repeat, List, Layers, Edit2, BoxSelect
+  Square, Box, Zap, Settings, Globe, ChevronDown, ChevronRight, Plus, FolderOpen, Slash, Lightbulb, Infinity, Repeat, List, Layers, Edit2, BoxSelect, AlertTriangle, ShieldAlert, XOctagon, Radio, Send, Puzzle
 } from 'lucide-react';
 
 export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }) {
@@ -12,6 +12,9 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
         { name: 'Library', color: 'bg-library', icon: <Globe size={14} /> },
         { name: 'Comment', color: 'bg-comment', icon: <Slash size={14} /> },
         { name: 'Constructor', color: 'bg-constructor', icon: <Plus size={14} /> },
+        { name: 'ErrorDef', color: 'bg-error', icon: <AlertTriangle size={14} /> },
+        { name: 'Event', color: 'bg-event', icon: <Radio size={14} /> },
+        { name: 'Interface', color: 'bg-interface', icon: <Puzzle size={14} /> },
       ]
     },
     {
@@ -31,6 +34,7 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
       isOpen: true,
       blocks: [
         { name: 'Function', color: 'bg-func', icon: <Zap size={14} /> },
+        { name: 'Modifier', color: 'bg-modifier', icon: <Settings size={14} /> },
         { name: 'Logic', color: 'bg-logic', icon: <Lightbulb size={14} /> },
         { name: 'If', color: 'bg-if', icon: <ChevronRight size={14} /> },
         { name: 'ElseIf', color: 'bg-elseif', icon: <ChevronRight size={14} /> },
@@ -38,7 +42,12 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
         { name: 'Ternary', color: 'bg-ternary', icon: <Zap size={14} /> },
         { name: 'For', color: 'bg-for', icon: <Repeat size={14} /> },
         { name: 'While', color: 'bg-while', icon: <Infinity size={14} /> },
-        { name: 'Modifier', color: 'bg-modifier', icon: <Settings size={14} /> },
+        { name: 'Require', color: 'bg-error', icon: <AlertTriangle size={14} /> },
+        { name: 'Assert', color: 'bg-error', icon: <ShieldAlert size={14} /> },
+        { name: 'Revert', color: 'bg-error', icon: <XOctagon size={14} /> },
+        { name: 'Emit', color: 'bg-event', icon: <Send size={14} /> },
+        { name: 'Receive', color: 'bg-safety', icon: <Radio size={14} /> },
+        { name: 'Fallback', color: 'bg-safety', icon: <Zap size={14} /> },
       ]
     }
   ];

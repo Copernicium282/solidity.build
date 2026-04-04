@@ -95,14 +95,15 @@ function App() {
    const generateSolidity = () => {
       let code = "// SPDX-License-Identifier: MIT\n";
       code += `pragma solidity ${solVersion};\n\n`;
-      const renderList = (blockList, indent = "") => {
+      const renderList = (blockList, indent = "", isInterface = false) => {
          let output = "";
          blockList.forEach((b, idx) => {
             const nextBlock = blockList[idx + 1];
             const followedByElse = nextBlock && (nextBlock.type === 'ElseIf' || nextBlock.type === 'Else');
             // Contract
             if (b.type === "Contract") {
-               output += `${indent}contract ${b.data?.name || "MyContract"} {\n`;
+               const inherits = b.data?.inheritance ? ` is ${b.data.inheritance}` : "";
+               output += `${indent}contract ${b.data?.name || "MyContract"}${inherits} {\n`;
                output += renderList(b.children || [], indent + "    "); // recursion
                output += `${indent}}\n\n`;
             }
@@ -111,16 +112,27 @@ function App() {
                const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
                const vis = b.data?.visibility || "public";
                const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
+               const virt = b.data?.isVirtual ? " virtual" : "";
+
+               // Handle override and multiple overrides
+               let over = "";
+               if (b.data?.isOverride) {
+                  over = b.data.overrideParents ? ` override${b.data.overrideParents}` : " override";
+               }
+
+               const mods = b.data?.modifiers ? ` ${b.data.modifiers}` : "";
                const ret = b.data?.returns ? ` returns (${b.data.returns})` : "";
 
                // Open the function
-               output += `\n${indent}function ${b.data?.name || "func"}(${args}) ${vis}${mut}${ret} {\n`;
-
-               // Call the kids recurser lol
-               output += renderList(b.children || [], indent + "    ");
-
-               // Close the function
-               output += `${indent}}\n`;
+               if (isInterface) {
+                  output += `\n${indent}function ${b.data?.name || "func"}(${args}) ${vis}${mut}${virt}${over}${mods}${ret};\n`;
+               } else {
+                  output += `\n${indent}function ${b.data?.name || "func"}(${args}) ${vis}${mut}${virt}${over}${mods}${ret} {\n`;
+                  // Call the kids recurser lol
+                  output += renderList(b.children || [], indent + "    ");
+                  // Close the function
+                  output += `${indent}}\n`;
+               }
             }
             // Logic
             else if (b.type === "Logic") {
@@ -171,7 +183,9 @@ function App() {
             // Constructor
             else if (b.type === "Constructor") {
                const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
-               output += `\n${indent}constructor(${args}) {\n`;
+               const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
+               const inits = b.data?.initializers ? ` ${b.data.initializers}` : "";
+               output += `\n${indent}constructor(${args})${mut}${inits} {\n`;
                output += renderList(b.children || [], indent + "    ");
                output += `${indent}}\n`;
             }
@@ -261,6 +275,63 @@ function App() {
                output += members.map(m => `${indent}    ${m.type} ${m.name};`).join("\n");
                output += `\n${indent}}\n`;
             }
+            // Error Definition (Custom Error)
+            else if (b.type === "ErrorDef") {
+               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
+               output += `${indent}error ${b.data?.name || "MyError"}(${args});\n`;
+            }
+            // 1. Require
+            else if (b.type === "Require") {
+               const msg = b.data?.message ? `, "${b.data.message}"` : "";
+               output += `${indent}require(${b.data?.condition || "true"}${msg});\n`;
+            }
+            // 2. Assert
+            else if (b.type === "Assert") {
+               const msg = b.data?.message ? `, "${b.data.message}"` : "";
+               output += `${indent}assert(${b.data?.condition || "true"}${msg});\n`;
+            }
+            // 3. Revert
+            else if (b.type === "Revert") {
+               const rawMsg = b.data?.message || "Error";
+               if (rawMsg.includes('(')) {
+                  // Custom error syntax: revert CustomError();
+                  output += `${indent}revert ${rawMsg};\n`;
+               } else {
+                  // String syntax: revert("String");
+                  output += `${indent}revert("${rawMsg}");\n`;
+               }
+            }
+            // Event 
+            else if (b.type === "Event") {
+               // b.data.params: [{ type: 'address', name: 'sender', indexed: true }]
+               const args = (b.data?.params || []).map(p =>
+                  `${p.type}${p.indexed ? ' indexed' : ''} ${p.name}`
+               ).join(", ");
+               output += `${indent}event ${b.data?.name || "Log"}(${args});\n`;
+            }
+            // Emit Operation
+            else if (b.type === "Emit") {
+               output += `${indent}emit ${b.data?.statement || "Log()"};\n`;
+            }
+            // Interface
+            else if (b.type === "Interface") {
+               output += `\n${indent}interface ${b.data?.name || "ICounter"} {\n`;
+               output += renderList(b.children || [], indent + "    ", true); // Pass isInterface = true
+               output += `${indent}}\n`;
+            }
+            // Receive
+            else if (b.type === "Receive") {
+               output += `\n${indent}receive() external payable {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
+            }
+            // Fallback
+            else if (b.type === "Fallback") {
+               const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
+               output += `\n${indent}fallback() external${mut} {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
+            }
          });
          return output;
       };
@@ -313,6 +384,27 @@ function App() {
          initialData.name = "Todo";
          initialData.members = [{ type: "string", name: "text" }, { type: "bool", name: "completed" }];
       }
+      else if (type === 'ErrorDef') {
+         initialData.name = "MyError";
+         initialData.params = [{ type: 'uint256', name: '_balance' }];
+      }
+      else if (type === 'Require' || type === 'Assert') {
+         initialData.condition = "x > 0";
+         initialData.message = ""; // Start with empty message
+      }
+      else if (type === 'Revert') {
+         initialData.message = "Error"; // Default error string
+      }
+      else if (type === 'Event') {
+         initialData.name = "Transfer";
+         initialData.params = [{ type: 'address', name: 'from', indexed: true }];
+      }
+      else if (type === 'Emit') {
+         initialData.statement = "Transfer(msg.sender, 100)";
+      }
+      else if (type === 'Interface') initialData.name = "ICounter";
+      else if (type === 'Receive') initialData.isOpen = true; // Always payable
+      else if (type === 'Fallback') initialData.mutability = 'payable';
       const newBlock = {
          id: `block-${Date.now()}`,
          type,
