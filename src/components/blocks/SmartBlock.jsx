@@ -26,7 +26,7 @@ export default function SmartBlock({ block, index, onUpdateBlock, onRemoveBlock,
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`group mb-4 rounded-xl border border-white/5 bg-[#1a1a1a]/40 backdrop-blur-sm
+      className={`group mb-2 rounded-xl border border-white/5 bg-[#1a1a1a]/40 backdrop-blur-sm
         ${isDragging ? 'opacity-50 scale-[1.02] shadow-2xl z-50' : ''}`}
     >
       <div

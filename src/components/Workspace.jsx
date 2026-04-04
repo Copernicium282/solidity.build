@@ -16,6 +16,12 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
       case 'Mapping': return 'border-mapping bg-mapping/10';
       case 'Logic': return 'border-logic bg-logic/10';
       case 'Event': return 'border-event bg-event/10';
+      case 'While': return 'border-while bg-while/10';
+      case 'If': return 'border-if bg-if/10';
+      case 'ElseIf': return 'border-elseif bg-elseif/10';
+      case 'Else': return 'border-else bg-else/10';
+      case 'Ternary': return 'border-ternary bg-ternary/10';
+      case 'For': return 'border-for bg-for/10';
       default: return 'border-gray-800 bg-gray-900';
     }
   };

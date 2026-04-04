@@ -5,7 +5,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
 
   return (
     <div {...dragHandleProps} className="px-6 py-4 flex items-center justify-between bg-black/5 min-w-0">
-      <div className="flex items-center gap-4 flex-1 min-w-0 overflow-hidden">
+      <div className="flex items-center gap-4 flex-1 min-w-0 flex-wrap">
 
         { /* Toggle Button */}
         <button
@@ -25,7 +25,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
 
         { /* State Var */}
         {block.type === 'State Var' && (
-          <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <select
               className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#569cd6] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[75px] h-[28px] text-left shadow-inner"
               value={block.data?.varType || 'uint256'}
@@ -101,7 +101,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
 
         { /* Function */}
         {block.type === 'Function' && (
-          <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <select
               className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#6ed668] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[85px] h-[28px] text-left"
               value={block.data?.visibility || 'public'}
@@ -136,7 +136,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
 
         { /* Mapping */}
         {block.type === 'Mapping' && (
-          <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <select
               className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#6ed668] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[85px] h-[28px] text-left"
               value={block.data?.varType1 || 'address'}
@@ -183,6 +183,86 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
+        {/* While */}
+        {block.type === 'While' && (
+          <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500/60 min-w-[70px]">
+              While
+            </span>
+            <span>(</span>
+            <input
+              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0"
+              value={block.data?.condition || ''}
+              onChange={(e) => onUpdate(block.id, { condition: e.target.value })}
+              placeholder="true"
+              spellCheck="false"
+            />
+            <span>)</span>
+          </div>
+        )}
+
+        {/* For Loop */}
+        {block.type === 'For' && (
+          <div className="flex items-center gap-1 flex-1 font-code text-[13px]" onMouseDown={(e) => e.stopPropagation()}>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500/60 min-w-[70px]">
+              For
+            </span>
+            <span className="text-gray-600 font-bold">(</span>
+            <input
+              className="bg-transparent border-none outline-none text-[#569cd6] w-28"
+              value={block.data?.init || ''}
+              onChange={(e) => onUpdate(block.id, { init: e.target.value })}
+              placeholder="uint256 i = 0"
+              spellCheck="false"
+            />
+            <span className="text-gray-600 font-bold">;</span>
+            <input
+              className="bg-transparent border-none outline-none text-pink-400 w-20"
+              value={block.data?.condition || ''}
+              onChange={(e) => onUpdate(block.id, { condition: e.target.value })}
+              placeholder="i < 10"
+              spellCheck="false"
+            />
+            <span className="text-gray-600 font-bold">;</span>
+            <input
+              className="bg-transparent border-none outline-none text-green-400 w-16"
+              value={block.data?.step || ''}
+              onChange={(e) => onUpdate(block.id, { step: e.target.value })}
+              placeholder="i++"
+              spellCheck="false"
+            />
+            <span className="text-gray-600 font-bold">)</span>
+          </div>
+        )}
+
+        {/* If & ElseIf */}
+        {(block.type === 'If' || block.type === 'ElseIf') && (
+          <div className="flex items-center gap-1 ml-1 text-gray-600 font-mono text-[10px] uppercase font-black">
+            <span className="text-gray-400/50">Condition</span>
+            <span className="ml-2">(</span>
+            <input
+              className="bg-transparent border-none outline-none text-[13px] text-pink-400 w-32 focus:text-pink-300 transition-all normal-case"
+              value={block.data?.condition || ''}
+              onChange={(e) => onUpdate(block.id, { condition: e.target.value })}
+              placeholder="x < 10"
+              spellCheck="false"
+            />
+            <span>)</span>
+          </div>
+        )}
+
+        {/* Ternary */}
+        {block.type === 'Ternary' && (
+          <div className="flex items-center gap-2 ml-1 text-gray-500 font-code text-[13px]">
+            <span>return</span>
+            <input className="bg-transparent border-none outline-none text-purple-300 w-24" value={block.data?.condition || ''} onChange={(e) => onUpdate(block.id, { condition: e.target.value })} placeholder="cond" />
+            <span className="text-gray-700">?</span>
+            <input className="bg-transparent border-none outline-none text-white w-12" value={block.data?.trueVal || ''} onChange={(e) => onUpdate(block.id, { trueVal: e.target.value })} placeholder="true" />
+            <span className="text-gray-700">:</span>
+            <input className="bg-transparent border-none outline-none text-white w-12" value={block.data?.falseVal || ''} onChange={(e) => onUpdate(block.id, { falseVal: e.target.value })} placeholder="false" />
+          </div>
+        )}
+
         { /* Contract, Constructor, Modifier, Comment, Logic */}
         {(block.type === 'Contract' || block.type === 'Constructor' || block.type === 'Modifier' || block.type === 'Comment' || block.type === 'Logic') && (
           <input
@@ -199,7 +279,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
         {(block.type === 'Modifier' || block.type === 'Function' || block.type === 'Constructor') && (
           <div className="flex items-center gap-1 ml-2">
             <span className="text-gray-600 font-bold">(</span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap">
               {(block.data?.params || []).map((p, idx) => (
                 <div key={idx} className="flex items-center gap-1 bg-white/5 border border-white/5 rounded px-1 group">
                   <input

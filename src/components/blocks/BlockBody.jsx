@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useDroppable } from '@dnd-kit/core';
 
 export default function BlockBody({ block, onUpdate, onRemove, getColor }) {
-  const isContainer = block.type === 'Contract' || block.type === 'Function' || block.type === 'Constructor';
+  const isContainer = ['Contract', 'Function', 'Constructor', 'Modifier', 'While', 'For', 'If', 'ElseIf', 'Else'].includes(block.type);
 
   const { setNodeRef, isOver } = useDroppable({
     id: `drop-${block.id}`,
@@ -51,7 +51,7 @@ export default function BlockBody({ block, onUpdate, onRemove, getColor }) {
         <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
           <div
             ref={setNodeRef}
-            className={`min-h-[100px] border-2 border-dashed rounded-xl p-8 transition-all duration-200 relative
+            className={`min-h-[60px] border-2 border-dashed rounded-xl p-4 transition-all duration-200 relative
               ${isOver ? 'border-func bg-func/10 ring-4 ring-func/20' : 'border-white/5 bg-black/5'}
               ${block.type === 'Function' ? 'bg-blue-500/5' : ''}`}
           >

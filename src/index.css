@@ -18,6 +18,12 @@
   --color-comment: #22c55e;
   --color-event: #10b981;
   --color-constructor: #ef4444;
+  --color-while: #a855f7;
+  --color-if: #ec4899;
+  --color-elseif: #f43f5e;
+  --color-else: #fb7185;
+  --color-ternary: #a855f7;
+  --color-for: #8b5cf6;
 
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -54,7 +60,7 @@ body {
 
 .bg-grid {
   background-image: radial-gradient(circle at 1px 1px, #1a1a1a 1px, transparent 0);
-  background-size: 32px 32px;
+  background-size: 24px 24px;
 }
 
 /* Puzzle Notch Animation / Shape */

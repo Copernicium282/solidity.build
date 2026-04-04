@@ -3,7 +3,7 @@ import Sidebar from "./components/Sidebar";
 import Palette from "./components/Palette";
 import Workspace from "./components/Workspace";
 import CodePanel from "./components/CodePanel";
-import { DndContext, pointerWithin, useSensor, useSensors, PointerSensor, KeyboardSensor } from '@dnd-kit/core';
+import { DndContext, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 
 function App() {
    const [blocks, setBlocks] = useState([]);
@@ -13,8 +13,7 @@ function App() {
    const [solVersion, setSolVersion] = useState("^0.8.30");
 
    const sensors = useSensors(
-      useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-      useSensor(KeyboardSensor)
+      useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
    );
 
    const handleDragEnd = (event) => {
@@ -174,6 +173,48 @@ function App() {
                output += renderList(b.children || [], indent + "    ");
                output += `${indent}}\n`;
             }
+            // While Loop
+            else if (b.type === "While") {
+               output += `\n${indent}while (${b.data?.condition || "true"}) {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
+            }
+            // For Loop
+            else if (b.type === "For") {
+               const init = b.data?.init || "uint256 i = 0";
+               const cond = b.data?.condition || "i < 10";
+               const step = b.data?.step || "i++";
+               output += `\n${indent}for (${init}; ${cond}; ${step}) {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
+            }
+            // If
+            else if (b.type === "If") {
+               output += `${indent}if (${b.data?.condition || "true"}) {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}`;
+               if (!followedByElse) output += `\n`;
+            }
+            // ElseIf
+            else if (b.type === "ElseIf") {
+               output += ` else if (${b.data?.condition || "true"}) {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}`;
+               if (!followedByElse) output += `\n`;
+            }
+            // Else
+            else if (b.type === "Else") {
+               output += ` else {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
+            }
+            // Ternary
+            else if (b.type === "Ternary") {
+               const cond = b.data?.condition || "_x < 10";
+               const t = b.data?.trueVal || "1";
+               const f = b.data?.falseVal || "2";
+               output += `${indent}return ${cond} ? ${t} : ${f};\n`;
+            }
          });
          return output;
       };
@@ -193,6 +234,20 @@ function App() {
          initialData.name = "myMapping";
          initialData.varType1 = "address";
          initialData.varType2 = "uint256";
+      }
+      else if (type === 'While') {
+         initialData.condition = "true";
+      }
+      else if (type === 'For') {
+         initialData.init = "uint256 i = 0";
+         initialData.condition = "i < 10";
+         initialData.step = "i++";
+      }
+      else if (type === 'If' || type === 'ElseIf') initialData.condition = "x < 10";
+      else if (type === 'Ternary') {
+         initialData.condition = "_x < 10";
+         initialData.trueVal = "1";
+         initialData.falseVal = "2";
       }
       const newBlock = {
          id: `block-${Date.now()}`,

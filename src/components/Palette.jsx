@@ -1,6 +1,5 @@
 import {
-  Square, Box, Zap, Settings, Globe,
-  ChevronDown, Plus, FolderOpen, Slash
+  Square, Box, Zap, Settings, Globe, ChevronDown, ChevronRight, Plus, FolderOpen, Slash, Lightbulb, Infinity, Repeat
 } from 'lucide-react';
 
 export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }) {
@@ -18,8 +17,8 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
       isOpen: true,
       blocks: [
         { name: 'State Var', color: 'bg-stateVar', icon: <Square size={14} /> },
-        { name: 'Comment', color: 'bg-stateVar', icon: <Slash size={14} /> },
-        { name: 'Mapping', color: 'bg-stateVar', icon: <Globe size={14} /> },
+        { name: 'Comment', color: 'bg-comment', icon: <Slash size={14} /> },
+        { name: 'Mapping', color: 'bg-mapping', icon: <Globe size={14} /> },
       ]
     },
     {
@@ -27,7 +26,13 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
       isOpen: true,
       blocks: [
         { name: 'Function', color: 'bg-func', icon: <Zap size={14} /> },
-        { name: 'Logic', color: 'bg-[#569cd6]', icon: <Zap size={14} /> },
+        { name: 'Logic', color: 'bg-logic', icon: <Lightbulb size={14} /> },
+        { name: 'If', color: 'bg-if', icon: <ChevronRight size={14} /> },
+        { name: 'ElseIf', color: 'bg-elseif', icon: <ChevronRight size={14} /> },
+        { name: 'Else', color: 'bg-else', icon: <ChevronRight size={14} /> },
+        { name: 'Ternary', color: 'bg-ternary', icon: <Zap size={14} /> },
+        { name: 'For', color: 'bg-for', icon: <Repeat size={14} /> },
+        { name: 'While', color: 'bg-while', icon: <Infinity size={14} /> },
         { name: 'Modifier', color: 'bg-modifier', icon: <Settings size={14} /> },
       ]
     }
@@ -60,7 +65,7 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
                       ? 'bg-contract/20 text-white border-l-2 border-contract ring-1 ring-contract/20'
                       : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}
                 >
-                  <div className={`${block.color} p-1 rounded-sm shadow-sm opacity-80`}>
+                  <div className={`${block.color} p-1.5 rounded shadow-sm border border-white/10 text-black`}>
                     {block.icon}
                   </div>
                   <span className="font-medium">{block.name}</span>
