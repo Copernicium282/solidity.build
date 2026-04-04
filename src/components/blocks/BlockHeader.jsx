@@ -50,7 +50,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             </select>
 
             <select
-              className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#6ed668] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[90px] h-[28px] text-left"
+              className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#6ed668] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[85px] h-[28px] text-left"
               value={block.data?.visibility || 'public'}
               onChange={(e) => onUpdate(block.id, { visibility: e.target.value })}
             >
@@ -59,9 +59,29 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
               <option value="internal" className="bg-[#1a1a1a] text-white">internal</option>
             </select>
 
+            <select
+              className="font-code bg-[#1a1a1a] border border-white/10 outline-none text-[12px] text-[#ff771d] rounded-md px-2 py-1 cursor-pointer font-bold appearance-none hover:bg-[#252525] transition-all uppercase w-[85px] h-[28px] text-left"
+              value={block.data?.isConst ? 'constant' : (block.data?.isImm ? 'immutable' : 'none')}
+              onChange={(e) => {
+                const val = e.target.value;
+                onUpdate(block.id, {
+                  isConst: val === 'constant',
+                  isImm: val === 'immutable'
+                });
+              }}
+            >
+              <option value="none" className="bg-[#1a1a1a] text-white">None</option>
+              <option value="constant" className="bg-[#1a1a1a] text-white">Constant</option>
+              <option value="immutable" className="bg-[#1a1a1a] text-white">Immutable</option>
+            </select>
+
             <input
               className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-24 p-0"
-              value={block.data?.name || ''}
+              value={block.data?.isConst
+                ? (block.data?.name || '').toUpperCase()
+                : (block.data?.isImm
+                  ? `i_${block.data?.name || ''}`
+                  : (block.data?.name || ''))}
               onChange={(e) => onUpdate(block.id, { name: e.target.value })}
               placeholder="myVar"
               spellCheck="false"
@@ -74,6 +94,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
               placeholder="initial value..."
               value={block.data?.value || ''}
               onChange={(e) => onUpdate(block.id, { value: e.target.value })}
+              spellCheck="false"
             />
           </div>
         )}
@@ -162,8 +183,8 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        { /* Contract, Constructor, Comment, Logic */}
-        {(block.type === 'Contract' || block.type === 'Constructor' || block.type === 'Comment' || block.type === 'Logic') && (
+        { /* Contract, Constructor, Modifier, Comment, Logic */}
+        {(block.type === 'Contract' || block.type === 'Constructor' || block.type === 'Modifier' || block.type === 'Comment' || block.type === 'Logic') && (
           <input
             className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0"
             value={block.data?.name || ''}
@@ -172,6 +193,46 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             spellCheck="false"
             onMouseDown={(e) => e.stopPropagation()}
           />
+        )}
+
+        {/* Params to break your head */}
+        {(block.type === 'Modifier' || block.type === 'Function' || block.type === 'Constructor') && (
+          <div className="flex items-center gap-1 ml-2">
+            <span className="text-gray-600 font-bold">(</span>
+            <div className="flex items-center gap-1">
+              {(block.data?.params || []).map((p, idx) => (
+                <div key={idx} className="flex items-center gap-1 bg-white/5 border border-white/5 rounded px-1 group">
+                  <input
+                    className="bg-transparent border-none outline-none text-[13px] text-[#569cd6] w-20 font-medium"
+                    value={p.type}
+                    onChange={(e) => {
+                      const newPs = [...block.data.params]; newPs[idx].type = e.target.value;
+                      onUpdate(block.id, { params: newPs });
+                    }}
+                  />
+                  <input
+                    className="bg-transparent border-none outline-none text-[13px] text-white/90 w-20 font-bold"
+                    value={p.name}
+                    onChange={(e) => {
+                      const newPs = [...block.data.params]; newPs[idx].name = e.target.value;
+                      onUpdate(block.id, { params: newPs });
+                    }}
+                  />
+                  <button className="text-[10px] text-gray-700 hover:text-red-400"
+                    onClick={() => onUpdate(block.id, { params: block.data.params.filter((_, i) => i !== idx) })}>
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => onUpdate(block.id, { params: [...(block.data?.params || []), { type: 'uint256', name: `_arg${(block.data?.params || []).length}` }] })}
+              className="w-4 h-4 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center text-[12px] text-gray-500"
+            >
+              +
+            </button>
+            <span className="text-gray-600 font-bold">)</span>
+          </div>
         )}
       </div>
 
@@ -188,6 +249,6 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           <Trash2 size={14} />
         </button>
       </div>
-    </div>
+    </div >
   );
 }

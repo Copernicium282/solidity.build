@@ -11,7 +11,11 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
       case 'Constructor': return 'border-constructor bg-constructor/10';
       case 'Function': return 'border-func bg-func/10';
       case 'Modifier': return 'border-modifier bg-modifier/10';
-      case 'Comment': return 'border-lime-500/30 bg-lime-500/5 text-lime-200/50';
+      case 'Comment': return 'border-comment bg-comment/10';
+      case 'State Var': return 'border-stateVar bg-stateVar/10';
+      case 'Mapping': return 'border-mapping bg-mapping/10';
+      case 'Logic': return 'border-logic bg-logic/10';
+      case 'Event': return 'border-event bg-event/10';
       default: return 'border-gray-800 bg-gray-900';
     }
   };

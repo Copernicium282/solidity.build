@@ -107,12 +107,13 @@ function App() {
             }
             // Function
             else if (b.type === "Function") {
+               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
                const vis = b.data?.visibility || "public";
                const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
                const ret = b.data?.returns ? ` returns (${b.data.returns})` : "";
 
                // Open the function
-               output += `\n${indent}function ${b.data?.name || "func"}() ${vis}${mut}${ret} {\n`;
+               output += `\n${indent}function ${b.data?.name || "func"}(${args}) ${vis}${mut}${ret} {\n`;
 
                // Call the kids recurser lol
                output += renderList(b.children || [], indent + "    ");
@@ -130,8 +131,20 @@ function App() {
             else if (b.type === "State Var") {
                const type = b.data?.varType || "uint256";
                const vis = b.data?.visibility || "public";
+               const isConst = b.data?.isConst ? "constant" : "";
+               const isImm = b.data?.isImm ? "immutable" : "";
+               const modifiers = [isConst, isImm].filter(Boolean).join(" ");
+               const modSpacer = modifiers ? ` ${modifiers}` : "";
+
+               // Uppercase name if constant
+               const name = b.data?.name || "v";
+               let finalName = b.data?.isConst ? name.toUpperCase() : name;
+               if (b.data?.isImm) {
+                  finalName = `i_${finalName}`;
+               }
+
                const val = b.data?.value ? ` = ${b.data.value}` : "";
-               output += `${indent}${type} ${vis} ${b.data?.name || "v"}${val};\n`;
+               output += `${indent}${type} ${vis}${modSpacer} ${finalName}${val};\n`;
             }
             // Mapping
             else if (b.type === "Mapping") {
@@ -149,7 +162,15 @@ function App() {
             }
             // Constructor
             else if (b.type === "Constructor") {
-               output += `\n${indent}constructor() {\n`;
+               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
+               output += `\n${indent}constructor(${args}) {\n`;
+               output += renderList(b.children || [], indent + "    ");
+               output += `${indent}}\n`;
+            }
+            // Modifier
+            else if (b.type === "Modifier") {
+               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
+               output += `\n${indent}modifier ${b.data?.name || "mod"}(${args}) {\n`;
                output += renderList(b.children || [], indent + "    ");
                output += `${indent}}\n`;
             }
