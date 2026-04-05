@@ -11,6 +11,49 @@ function App() {
    const [isFullscreenCode, setIsFullscreenCode] = useState(false);
    const [generatedCode, setGeneratedCode] = useState("");
    const [solVersion, setSolVersion] = useState("^0.8.30");
+   const [ethPrice, setEthPrice] = useState("---");
+   const [gasPrice, setGasPrice] = useState("---");
+
+   useEffect(() => {
+      const fetchPrices = async () => {
+         try {
+            // CoinGecko ETH Price with Demo API Key
+            const cgKey = import.meta.env.VITE_COINGECKO_API_KEY || "";
+            const ethRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd${cgKey ? `&x_cg_demo_api_key=${cgKey}` : ''}`);
+            const ethData = await ethRes.json();
+            if (ethData.ethereum?.usd) {
+               setEthPrice(`$${ethData.ethereum.usd.toLocaleString()}`);
+            }
+
+            // Etherscan Gas Tracker with V2 API Key
+            const etherscanKey = import.meta.env.VITE_ETHERSCAN_API_KEY;
+            if (etherscanKey) {
+               const gasRes = await fetch(`https://api.etherscan.io/v2/api?chainid=1&module=gastracker&action=gasoracle&apikey=${etherscanKey}`);
+               const gasData = await gasRes.json();
+               if (gasData.result?.ProposeGasPrice) {
+                  // Normalize if a long decimal
+                  const price = parseFloat(gasData.result.ProposeGasPrice);
+                  setGasPrice(`${price < 1 ? price.toFixed(2) : Math.round(price)} Gwei`);
+               }
+            }
+         } catch (e) {
+            console.error("Price fetch failed", e);
+         }
+      };
+
+      fetchPrices();
+      const interval = setInterval(fetchPrices, 60000); // Update every minute
+      return () => clearInterval(interval);
+   }, []);
+
+   const handleOpenInRemix = () => {
+      // Base64 encode Unicode strings for remix
+      const bytes = new TextEncoder().encode(generatedCode);
+      const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
+      const b64 = btoa(binString);
+
+      window.open(`https://remix.ethereum.org/#code=${b64}`, "_blank");
+   };
 
    const sensors = useSensors(
       useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -435,7 +478,7 @@ function App() {
 
    return (
       <div className="flex h-screen bg-background text-white overflow-hidden font-sans select-none">
-         <Sidebar onToggleFullscreen={() => setIsFullscreenCode(!isFullscreenCode)} />
+         <Sidebar ethPrice={ethPrice} onToggleFullscreen={() => setIsFullscreenCode(!isFullscreenCode)} />
 
          <div className={`transition-all duration-300 border-r border-gray-800 flex flex-col bg-[#0b0b0b] min-w-0
                        ${isFullscreenCode ? 'w-0 opacity-0' : 'w-68 opacity-100'}`}>
@@ -447,12 +490,15 @@ function App() {
             <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={handleDragEnd}>
                <Workspace
                   blocks={blocks}
+                  ethPrice={ethPrice}
+                  gasPrice={gasPrice}
                   onUpdateBlock={updateBlock}
                   onRemoveBlock={removeBlock}
                   isCodeOpen={isCodeOpen}
                   solVersion={solVersion}
                   setSolVersion={setSolVersion}
                   onToggleCode={() => setIsCodeOpen(!isCodeOpen)}
+                  onOpenInRemix={handleOpenInRemix}
                />
             </DndContext>
          </div>
@@ -460,7 +506,7 @@ function App() {
          {/* Code Panel */}
          <div className={`transition-all duration-500 border-l border-gray-800 bg-[#050505] overflow-hidden flex flex-col
                        ${isFullscreenCode ? 'flex-1' : (isCodeOpen ? 'w-[450px]' : 'w-0')}`}>
-            <CodePanel code={generatedCode} />
+            <CodePanel code={generatedCode} onExport={handleOpenInRemix} />
          </div>
       </div>
    )

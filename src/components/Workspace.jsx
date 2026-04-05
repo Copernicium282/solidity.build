@@ -1,9 +1,9 @@
-import { Play, Code, LayoutPanelTop } from 'lucide-react';
+import { Play, Code, LayoutPanelTop, ExternalLink, Zap, Activity } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import SmartBlock from './blocks/SmartBlock';
 
-export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBlock, onRemoveBlock, solVersion, setSolVersion }) {
+export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBlock, onRemoveBlock, solVersion, setSolVersion, ethPrice, gasPrice, onOpenInRemix }) {
 
   const getBlockColor = (type) => {
     switch (type) {
@@ -46,16 +46,30 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
   return (
     <div className="flex-1 flex flex-col bg-[#111111] overflow-hidden">
       {/* Workspace Header */}
-      <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-[#0d0d0d]">
-        <div className="flex items-center gap-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400">Canvas</h2>
+      <div className="h-[68px] border-b border-gray-800 flex justify-between items-center bg-[#0d0d0d] px-6">
+        <div className="flex items-center gap-6">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">Canvas</h2>
+          
           <div className="h-4 w-px bg-gray-800" />
-          <span className="text-sm font-medium text-gray-400">Main.sol</span>
+          
+          {/* Price APIs */}
+          <div className="flex items-center gap-6">
+             <div className="flex items-center gap-2 group cursor-help" title="Live ETH Price (CoinGecko)">
+                <Activity size={14} className="text-blue-500" />
+                <span className="text-[12px] font-bold text-blue-400/80 group-hover:text-blue-400 transition-colors">{ethPrice}</span>
+             </div>
+             <div className="flex items-center gap-2 group cursor-help" title="Live Network Gas">
+                <Zap size={14} className="text-purple-500" />
+                <span className="text-[12px] font-bold text-purple-400/80 group-hover:text-purple-400 transition-colors">{gasPrice}</span>
+             </div>
+          </div>
 
-          <div className="flex items-center gap-2 ml-2">
-            <span className="text-sm font-medium text-gray-500">Compiler Version:</span>
+          <div className="h-4 w-px bg-gray-800" />
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-gray-600">Solc:</span>
             <input
-              className="bg-transparent border-none outline-none text-sm font-medium text-[#569cd6] w-16 p-0"
+              className="bg-transparent border-none outline-none text-[12px] font-bold text-[#569cd6] w-20 p-0"
               value={solVersion}
               onChange={(e) => setSolVersion(e.target.value)}
               spellCheck="false"
@@ -63,10 +77,13 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 bg-contract hover:bg-opacity-80 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-lg active:scale-95 group">
-            <Play size={16} fill="white" className="group-hover:translate-x-0.5 transition-transform" />
-            Deploy
+        <div className="flex items-center gap-4">
+          <button 
+             onClick={onOpenInRemix}
+             className="flex items-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 px-4 py-2 rounded-full font-bold text-xs text-gray-300 transition-all active:scale-95 group shadow-inner"
+          >
+            <ExternalLink size={14} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
+            Open in Remix
           </button>
 
           <button
