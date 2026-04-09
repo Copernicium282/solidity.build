@@ -12,7 +12,7 @@ Inspired by [eth.build](https://eth.build) and [MIT Scratch](https://scratch.mit
 
 | Visual Builder | Live Solidity Generation |
 | :---: | :---: |
-| ![Builder](public/image.png) | ![Preview](public/image2.png) |
+| ![Builder](./public/builder.png) | ![Preview](./public/preview.png) |
 
 ## Table of Contents
 
