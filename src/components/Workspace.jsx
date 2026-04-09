@@ -5,6 +5,8 @@ import SmartBlock from './blocks/SmartBlock';
 
 export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBlock, onRemoveBlock, solVersion, setSolVersion, ethPrice, gasPrice, onOpenInRemix }) {
 
+  // Maps block types to their specific Tailwind color tokens.
+  // These tokens (e.g., bg-contract, border-func) are globally defined in index.css.
   const getBlockColor = (type) => {
     switch (type) {
       case 'Contract': return 'border-contract bg-contract/10';
@@ -31,7 +33,6 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
       case 'Require':
       case 'Assert':
       case 'Revert': return 'border-error bg-error/10';
-      case 'Event':
       case 'Emit': return 'border-event bg-event/10';
       case 'Interface': return 'border-interface bg-interface/10';
       case 'Receive':
@@ -68,12 +69,16 @@ export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBl
 
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-widest text-gray-600">Solc:</span>
-            <input
-              className="bg-transparent border-none outline-none text-[12px] font-bold text-[#569cd6] w-20 p-0"
+            <select
+              className="bg-transparent border-none outline-none text-[12px] font-bold text-[#569cd6] cursor-pointer appearance-none hover:text-blue-400 transition-colors"
               value={solVersion}
               onChange={(e) => setSolVersion(e.target.value)}
-              spellCheck="false"
-            />
+            >
+              <option value="^0.8.0">0.8.x</option>
+              <option value="^0.7.0">0.7.x</option>
+              <option value="^0.6.0">0.6.x</option>
+              <option value="^0.5.0">0.5.x</option>
+            </select>
           </div>
         </div>
 

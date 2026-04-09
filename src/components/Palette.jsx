@@ -1,5 +1,5 @@
 import {
-  Square, Box, Zap, Settings, Globe, ChevronDown, ChevronRight, Plus, FolderOpen, Slash, Lightbulb, Infinity, Repeat, List, Layers, Edit2, BoxSelect, AlertTriangle, ShieldAlert, XOctagon, Radio, Send, Puzzle
+  Square, Box, Zap, Settings, Globe, ChevronDown, ChevronRight, Plus, FolderOpen, Slash, Lightbulb, Infinity, Repeat, List, Layers, Edit2, BoxSelect, AlertTriangle, ShieldAlert, XOctagon, Radio, Send, Puzzle, Crown
 } from 'lucide-react';
 
 export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }) {
@@ -49,6 +49,15 @@ export default function Palette({ onSelectBlock, selectedBlockType, onAddBlock }
         { name: 'Receive', color: 'bg-safety', icon: <Radio size={14} /> },
         { name: 'Fallback', color: 'bg-safety', icon: <Zap size={14} /> },
       ]
+    },
+    {
+       label: 'Templates',
+       isOpen: true,
+       blocks: [
+          { name: 'ERC20 Token', color: 'bg-emerald-500', icon: <Crown size={14} /> },
+          { name: 'ERC721 NFT', color: 'bg-orange-500', icon: <Crown size={14} /> },
+          { name: 'Ownable', color: 'bg-indigo-500', icon: <Crown size={14} /> },
+       ]
     }
   ];
 

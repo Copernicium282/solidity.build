@@ -4,15 +4,23 @@ import Palette from "./components/Palette";
 import Workspace from "./components/Workspace";
 import CodePanel from "./components/CodePanel";
 import { DndContext, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { generateSolidity as getSolidity } from "./utils/solidityGenerator";
+
+// Persistent worker instance to keep library cache across compilations
+// Setting this outside the component prevents the worker from being destroyed
+// and recreated every time App re-renders, keeping the CDN cache hot.
+let compilerWorker = null;
 
 function App() {
    const [blocks, setBlocks] = useState([]);
    const [isCodeOpen, setIsCodeOpen] = useState(true);
    const [isFullscreenCode, setIsFullscreenCode] = useState(false);
    const [generatedCode, setGeneratedCode] = useState("");
-   const [solVersion, setSolVersion] = useState("^0.8.30");
+   const [solVersion, setSolVersion] = useState("^0.8.0");
    const [ethPrice, setEthPrice] = useState("---");
    const [gasPrice, setGasPrice] = useState("---");
+   const [compilationResult, setCompilationResult] = useState(null);
+   const [isCompiling, setIsCompiling] = useState(false);
 
    useEffect(() => {
       const fetchPrices = async () => {
@@ -52,8 +60,43 @@ function App() {
       const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
       const b64 = btoa(binString);
 
+      // Guard against browser URL limits (typically safe up to ~2000-8000 max chars)
+      // If a contract is massive, the base64 string will just get truncated silently by the browser.
+      if (b64.length > 7000) {
+         alert("Contract is too large to export via URL. Please copy the code directly to Remix.");
+         return;
+      }
+
       window.open(`https://remix.ethereum.org/#code=${b64}`, "_blank");
    };
+
+    const handleCompile = () => {
+       if (isCompiling) return;
+       setIsCompiling(true);
+       setCompilationResult(null);
+
+       // Initialize worker if needed
+       if (!compilerWorker) {
+          compilerWorker = new Worker(new URL('/compiler-worker.js', import.meta.url));
+       }
+       
+       compilerWorker.postMessage({ sourceCode: generatedCode });
+
+       compilerWorker.onmessage = (e) => {
+          const { success, output, error } = e.data;
+          if (success) {
+             setCompilationResult(output);
+          } else {
+             setCompilationResult({ errors: [{ severity: 'error', message: error, type: 'Internal' }] });
+          }
+          setIsCompiling(false);
+       };
+
+       compilerWorker.onerror = (e) => {
+          setCompilationResult({ errors: [{ severity: 'error', message: "Compiler worker failed to load. Check console.", type: 'System' }] });
+          setIsCompiling(false);
+       };
+    };
 
    const sensors = useSensors(
       useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -69,7 +112,10 @@ function App() {
       // Clone tree
       const newBlocks = structuredClone(blocks);
 
-      // Remove from current position
+      /**
+       * Recursively traverses the nested array to find a block by ID,
+       * removes it from its parent's array, and returns the removed block.
+       */
       const findAndRemove = (list, id) => {
          for (let i = 0; i < list.length; i++) {
             if (String(list[i].id) === id) return list.splice(i, 1)[0];
@@ -80,7 +126,10 @@ function App() {
          }
       };
 
-      // Find a block's parent list and index
+      /**
+       * Recursively searches for a block by ID and returns its parent array
+       * and its index within that array (used for dropping "before" another block).
+       */
       const findBlockLocation = (list, id) => {
          for (let i = 0; i < list.length; i++) {
             if (String(list[i].id) === id) return { parent: list, index: i };
@@ -92,7 +141,10 @@ function App() {
          return null;
       };
 
-      // Find a block by ID
+      /**
+       * Simple recursive search to fetch a block reference by ID 
+       * (used to find the target container when dropping inside a block).
+       */
       const findBlock = (list, id) => {
          for (const b of list) {
             if (String(b.id) === id) return b;
@@ -132,322 +184,165 @@ function App() {
       }
 
       setBlocks(newBlocks);
-      console.log("DROP:", activeId, "→", overId);
    };
 
    const generateSolidity = () => {
-      let code = "// SPDX-License-Identifier: MIT\n";
-      code += `pragma solidity ${solVersion};\n\n`;
-      const renderList = (blockList, indent = "", isInterface = false) => {
-         let output = "";
-         blockList.forEach((b, idx) => {
-            const nextBlock = blockList[idx + 1];
-            const followedByElse = nextBlock && (nextBlock.type === 'ElseIf' || nextBlock.type === 'Else');
-            // Contract
-            if (b.type === "Contract") {
-               const inherits = b.data?.inheritance ? ` is ${b.data.inheritance}` : "";
-               output += `${indent}contract ${b.data?.name || "MyContract"}${inherits} {\n`;
-               output += renderList(b.children || [], indent + "    "); // recursion
-               output += `${indent}}\n\n`;
-            }
-            // Function
-            else if (b.type === "Function") {
-               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
-               const vis = b.data?.visibility || "public";
-               const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
-               const virt = b.data?.isVirtual ? " virtual" : "";
-
-               // Handle override and multiple overrides
-               let over = "";
-               if (b.data?.isOverride) {
-                  over = b.data.overrideParents ? ` override${b.data.overrideParents}` : " override";
-               }
-
-               const mods = b.data?.modifiers ? ` ${b.data.modifiers}` : "";
-               const ret = b.data?.returns ? ` returns (${b.data.returns})` : "";
-
-               // Open the function
-               if (isInterface) {
-                  output += `\n${indent}function ${b.data?.name || "func"}(${args}) ${vis}${mut}${virt}${over}${mods}${ret};\n`;
-               } else {
-                  output += `\n${indent}function ${b.data?.name || "func"}(${args}) ${vis}${mut}${virt}${over}${mods}${ret} {\n`;
-                  // Call the kids recurser lol
-                  output += renderList(b.children || [], indent + "    ");
-                  // Close the function
-                  output += `${indent}}\n`;
-               }
-            }
-            // Logic
-            else if (b.type === "Logic") {
-               const codeSnippet = b.data?.code || "";
-               // Indent every line of the snippet correctly
-               output += codeSnippet.split('\n').map(l => `${indent}${l}`).join('\n') + "\n";
-            }
-            // State Var
-            else if (b.type === "State Var") {
-               const baseType = b.data?.isCustomType ? (b.data?.customType || "Status") : (b.data?.varType || "uint256");
-               const vis = b.data?.visibility || "public";
-               const isConst = b.data?.isConst ? "constant" : "";
-               const isImm = b.data?.isImm ? "immutable" : "";
-               const modifiers = [isConst, isImm].filter(Boolean).join(" ");
-               const modSpacer = modifiers ? ` ${modifiers}` : "";
-
-               // Uppercase name if constant
-               const name = b.data?.name || "v";
-               let finalName = b.data?.isConst ? name.toUpperCase() : name;
-               if (b.data?.isImm) {
-                  finalName = `i_${finalName}`;
-               }
-
-               const val = b.data?.value ? ` = ${b.data.value}` : "";
-               output += `${indent}${baseType} ${vis}${modSpacer} ${finalName}${val};\n`;
-            }
-            // Mapping
-            else if (b.type === "Mapping") {
-               const types = b.data?.types || ["address", "uint256"];
-               const vis = b.data?.visibility || "public";
-               const name = b.data?.name || "myMap";
-
-               // Recursively build if required: mapping(k => mapping(k2 => v))
-               const buildMapping = (typeList) => {
-                  if (typeList.length <= 1) return typeList[0];
-                  const [current, ...rest] = typeList;
-                  return `mapping(${current} => ${buildMapping(rest)})`;
-               };
-
-               output += `${indent}${buildMapping(types)} ${vis} ${name};\n`;
-            }
-            // Comment
-            else if (b.type === "Comment") {
-               const text = b.data?.text || "comment here";
-               const commentLineStyle = text.split('\n').map(l => `${indent}    ${l}`).join('\n');
-               output += `\n${indent}/*\n${commentLineStyle}\n${indent}*/\n`;
-            }
-            // Constructor
-            else if (b.type === "Constructor") {
-               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
-               const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
-               const inits = b.data?.initializers ? ` ${b.data.initializers}` : "";
-               output += `\n${indent}constructor(${args})${mut}${inits} {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-            // Modifier
-            else if (b.type === "Modifier") {
-               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
-               output += `\n${indent}modifier ${b.data?.name || "mod"}(${args}) {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-            // While Loop
-            else if (b.type === "While") {
-               output += `\n${indent}while (${b.data?.condition || "true"}) {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-            // For Loop
-            else if (b.type === "For") {
-               const init = b.data?.init || "uint256 i = 0";
-               const cond = b.data?.condition || "i < 10";
-               const step = b.data?.step || "i++";
-               output += `\n${indent}for (${init}; ${cond}; ${step}) {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-            // If
-            else if (b.type === "If") {
-               output += `${indent}if (${b.data?.condition || "true"}) {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}`;
-               if (!followedByElse) output += `\n`;
-            }
-            // ElseIf
-            else if (b.type === "ElseIf") {
-               output += ` else if (${b.data?.condition || "true"}) {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}`;
-               if (!followedByElse) output += `\n`;
-            }
-            // Else
-            else if (b.type === "Else") {
-               output += ` else {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-            // Ternary
-            else if (b.type === "Ternary") {
-               const cond = b.data?.condition || "_x < 10";
-               const t = b.data?.trueVal || "1";
-               const f = b.data?.falseVal || "2";
-               output += `${indent}return ${cond} ? ${t} : ${f};\n`;
-            }
-            // Array
-            else if (b.type === "Array") {
-               const baseType = b.data?.isCustomType ? (b.data?.customType || "Status") : (b.data?.itemType || "uint256");
-               const size = b.data?.fixedSize || ""; // dynamic if empty
-               const vis = b.data?.visibility || "public";
-               const name = b.data?.name || "arr";
-               const val = b.data?.value ? ` = ${b.data.value}` : "";
-
-               output += `${indent}${baseType}[${size}] ${vis} ${name}${val};\n`;
-            }
-            else if (b.type === "Enum") {
-               const members = b.data?.members || ["Pending", "Shipped"];
-               output += `${indent}enum ${b.data?.name || "Status"} {\n`;
-               output += members.map(m => `${indent}    ${m}`).join(",\n");
-               output += `\n${indent}}\n\n`;
-            }
-            // Library
-            else if (b.type === "Library") {
-               output += `\n${indent}library ${b.data?.name || "MyLibrary"} {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-            // User-Defined Value Types
-            else if (b.type === "User-Defined Value Type") {
-               const name = b.data?.name || "Duration";
-               const sub = b.data?.subType || "uint64";
-               output += `${indent}type ${name} is ${sub};\n`;
-            }
-            // Struct
-            else if (b.type === "Struct") {
-               const name = b.data?.name || "Todo";
-               const members = b.data?.members || [{ type: "string", name: "text" }];
-
-               output += `\n${indent}struct ${name} {\n`;
-               output += members.map(m => `${indent}    ${m.type} ${m.name};`).join("\n");
-               output += `\n${indent}}\n`;
-            }
-            // Error Definition (Custom Error)
-            else if (b.type === "ErrorDef") {
-               const args = (b.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
-               output += `${indent}error ${b.data?.name || "MyError"}(${args});\n`;
-            }
-            // 1. Require
-            else if (b.type === "Require") {
-               const msg = b.data?.message ? `, "${b.data.message}"` : "";
-               output += `${indent}require(${b.data?.condition || "true"}${msg});\n`;
-            }
-            // 2. Assert
-            else if (b.type === "Assert") {
-               const msg = b.data?.message ? `, "${b.data.message}"` : "";
-               output += `${indent}assert(${b.data?.condition || "true"}${msg});\n`;
-            }
-            // 3. Revert
-            else if (b.type === "Revert") {
-               const rawMsg = b.data?.message || "Error";
-               if (rawMsg.includes('(')) {
-                  // Custom error syntax: revert CustomError();
-                  output += `${indent}revert ${rawMsg};\n`;
-               } else {
-                  // String syntax: revert("String");
-                  output += `${indent}revert("${rawMsg}");\n`;
-               }
-            }
-            // Event 
-            else if (b.type === "Event") {
-               // b.data.params: [{ type: 'address', name: 'sender', indexed: true }]
-               const args = (b.data?.params || []).map(p =>
-                  `${p.type}${p.indexed ? ' indexed' : ''} ${p.name}`
-               ).join(", ");
-               output += `${indent}event ${b.data?.name || "Log"}(${args});\n`;
-            }
-            // Emit Operation
-            else if (b.type === "Emit") {
-               output += `${indent}emit ${b.data?.statement || "Log()"};\n`;
-            }
-            // Interface
-            else if (b.type === "Interface") {
-               output += `\n${indent}interface ${b.data?.name || "ICounter"} {\n`;
-               output += renderList(b.children || [], indent + "    ", true); // Pass isInterface = true
-               output += `${indent}}\n`;
-            }
-            // Receive
-            else if (b.type === "Receive") {
-               output += `\n${indent}receive() external payable {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-            // Fallback
-            else if (b.type === "Fallback") {
-               const mut = b.data?.mutability ? ` ${b.data.mutability}` : "";
-               output += `\n${indent}fallback() external${mut} {\n`;
-               output += renderList(b.children || [], indent + "    ");
-               output += `${indent}}\n`;
-            }
-         });
-         return output;
-      };
-      const finalBody = renderList(blocks);
-      setGeneratedCode(code + finalBody);
+      setGeneratedCode(getSolidity(blocks, solVersion));
    };
+
    useEffect(() => {
       generateSolidity();
    }, [blocks, solVersion]);
 
+   /**
+    * Injects a new block into the root of the workspace.
+    * Uses a switch statement to populate `initialData` with safe defaults 
+    * so the block renders immediately without crashing.
+    */
    const addBlock = (type) => {
       let initialData = { isOpen: true };
-      if (type === 'Contract') initialData.name = "MyContract";
-      else if (type === 'Function') initialData.name = "myFunc";
-      else if (type === 'State Var') initialData.name = "newVar";
-      else if (type === 'Mapping') {
-         initialData.name = "myMap";
-         initialData.types = ["address", "uint256"]; // New array structure
-         initialData.visibility = "public";
+      
+      switch (type) {
+         case 'Contract':
+            initialData.name = "MyContract";
+            break;
+         case 'Function':
+            initialData.name = "myFunc";
+            break;
+         case 'State Var':
+            initialData.name = "newVar";
+            break;
+         case 'Mapping':
+            initialData.name = "myMap";
+            initialData.types = ["address", "uint256"]; // New array structure
+            initialData.visibility = "public";
+            break;
+         case 'While':
+            initialData.condition = "true";
+            break;
+         case 'For':
+            initialData.init = "uint256 i = 0";
+            initialData.condition = "i < 10";
+            initialData.step = "i++";
+            break;
+         case 'If':
+         case 'ElseIf':
+            initialData.condition = "x < 10";
+            break;
+         case 'Ternary':
+            initialData.condition = "_x < 10";
+            initialData.trueVal = "1";
+            initialData.falseVal = "2";
+            break;
+         case 'Array':
+            initialData.itemType = "uint256";
+            initialData.fixedSize = ""; // dynamic by default
+            initialData.name = "arr";
+            break;
+         case 'Enum':
+            initialData.name = "Status";
+            initialData.members = ["Pending", "Shipped"];
+            break;
+         case 'Library':
+            initialData.name = "MyLibrary";
+            break;
+         case 'User-Defined Value Type':
+            initialData.name = "Duration";
+            initialData.subType = "uint64";
+            break;
+         case 'Struct':
+            initialData.name = "Todo";
+            initialData.members = [{ type: "string", name: "text" }, { type: "bool", name: "completed" }];
+            break;
+         case 'ErrorDef':
+            initialData.name = "MyError";
+            initialData.params = [{ type: 'uint256', name: '_balance' }];
+            break;
+         case 'Require':
+         case 'Assert':
+            initialData.condition = "x > 0";
+            initialData.message = ""; // Start with empty message
+            break;
+         case 'Revert':
+            initialData.message = "Error"; // Default error string
+            break;
+         case 'Event':
+            initialData.name = "Transfer";
+            initialData.params = [{ type: 'address', name: 'from', indexed: true }];
+            break;
+         case 'Emit':
+            initialData.statement = "Transfer(msg.sender, 100)";
+            break;
+         case 'Interface':
+            initialData.name = "ICounter";
+            break;
+         case 'Receive':
+            initialData.isOpen = true; // Always payable
+            break;
+         case 'Fallback':
+            initialData.mutability = 'payable';
+            break;
+         default:
+            break;
       }
-      else if (type === 'While') {
-         initialData.condition = "true";
+
+      // ═══════ TEMPLATES ═══════
+      // Templates aren't single primitives; they are pre-assembled nested 
+      // trees of blocks injected all at once. Like dropping a prefab.
+      if (type === 'ERC20 Token') {
+         const tId = Date.now();
+         const newBlock = {
+            id: `block-${tId}`,
+            type: 'Contract',
+            data: { name: "MyToken", inheritance: "ERC20", isOpen: true },
+            children: [
+               { id: `block-${tId}-1`, type: 'Constructor', data: { name: "constructor", params: [], initializers: " ERC20(\"MyToken\", \"MTK\")" }, children: [
+                  { id: `block-${tId}-2`, type: 'Logic', data: { code: "_mint(msg.sender, 1000 * 10**18);" } }
+               ]},
+               { id: `block-${tId}-3`, type: 'Function', data: { name: "mint", visibility: "public", params: [{type: 'address', name: 'to'}, {type: 'uint256', name: 'amount'}] }, children: [
+                  { id: `block-${tId}-4`, type: 'Logic', data: { code: "_mint(to, amount);" } }
+               ]}
+            ]
+         };
+         setBlocks([...blocks, newBlock]);
+         return;
       }
-      else if (type === 'For') {
-         initialData.init = "uint256 i = 0";
-         initialData.condition = "i < 10";
-         initialData.step = "i++";
+
+      if (type === 'ERC721 NFT') {
+         const tId = Date.now();
+         const newBlock = {
+            id: `block-${tId}`,
+            type: 'Contract',
+            data: { name: "MyNFT", inheritance: "ERC721", isOpen: true },
+            children: [
+               { id: `block-${tId}-1`, type: 'Constructor', data: { name: "constructor", initializers: " ERC721(\"MyNFT\", \"NFT\")" }, children: [
+                  { id: `block-${tId}-2`, type: 'Logic', data: { code: "// Initial setup" } }
+               ]},
+               { id: `block-${tId}-3`, type: 'Function', data: { name: "safeMint", visibility: "public", params: [{type: 'address', name: 'to'}, {type: 'uint256', name: 'tokenId'}] }, children: [
+                  { id: `block-${tId}-4`, type: 'Logic', data: { code: "_safeMint(to, tokenId);" } }
+               ]}
+            ]
+         };
+         setBlocks([...blocks, newBlock]);
+         return;
       }
-      else if (type === 'If' || type === 'ElseIf') initialData.condition = "x < 10";
-      else if (type === 'Ternary') {
-         initialData.condition = "_x < 10";
-         initialData.trueVal = "1";
-         initialData.falseVal = "2";
+
+      if (type === 'Ownable') {
+         const tId = Date.now();
+         const newBlock = {
+            id: `block-${tId}`,
+            type: 'Contract',
+            data: { name: "RestrictedContract", inheritance: "Ownable", isOpen: true },
+            children: [
+               { id: `block-${tId}-1`, type: 'Function', data: { name: "withdraw", visibility: "public", modifiers: "onlyOwner" }, children: [
+                  { id: `block-${tId}-2`, type: 'Logic', data: { code: "payable(owner()).transfer(address(this).balance);" } }
+               ]}
+            ]
+         };
+         setBlocks([...blocks, newBlock]);
+         return;
       }
-      else if (type === 'Array') {
-         initialData.itemType = "uint256";
-         initialData.fixedSize = ""; // dynamic by default
-         initialData.name = "arr";
-      }
-      else if (type === 'Enum') {
-         initialData.name = "Status";
-         initialData.members = ["Pending", "Shipped"];
-      }
-      else if (type === 'Library') initialData.name = "MyLibrary";
-      else if (type === 'User-Defined Value Type') {
-         initialData.name = "Duration";
-         initialData.subType = "uint64";
-      }
-      else if (type === 'Struct') {
-         initialData.name = "Todo";
-         initialData.members = [{ type: "string", name: "text" }, { type: "bool", name: "completed" }];
-      }
-      else if (type === 'ErrorDef') {
-         initialData.name = "MyError";
-         initialData.params = [{ type: 'uint256', name: '_balance' }];
-      }
-      else if (type === 'Require' || type === 'Assert') {
-         initialData.condition = "x > 0";
-         initialData.message = ""; // Start with empty message
-      }
-      else if (type === 'Revert') {
-         initialData.message = "Error"; // Default error string
-      }
-      else if (type === 'Event') {
-         initialData.name = "Transfer";
-         initialData.params = [{ type: 'address', name: 'from', indexed: true }];
-      }
-      else if (type === 'Emit') {
-         initialData.statement = "Transfer(msg.sender, 100)";
-      }
-      else if (type === 'Interface') initialData.name = "ICounter";
-      else if (type === 'Receive') initialData.isOpen = true; // Always payable
-      else if (type === 'Fallback') initialData.mutability = 'payable';
+
       const newBlock = {
          id: `block-${Date.now()}`,
          type,
@@ -478,7 +373,9 @@ function App() {
 
    return (
       <div className="flex h-screen bg-background text-white overflow-hidden font-sans select-none">
-         <Sidebar ethPrice={ethPrice} onToggleFullscreen={() => setIsFullscreenCode(!isFullscreenCode)} />
+         <Sidebar 
+            onToggleFullscreen={() => setIsFullscreenCode(!isFullscreenCode)} 
+         />
 
          <div className={`transition-all duration-300 border-r border-gray-800 flex flex-col bg-[#0b0b0b] min-w-0
                        ${isFullscreenCode ? 'w-0 opacity-0' : 'w-68 opacity-100'}`}>
@@ -503,11 +400,17 @@ function App() {
             </DndContext>
          </div>
 
-         {/* Code Panel */}
          <div className={`transition-all duration-500 border-l border-gray-800 bg-[#050505] overflow-hidden flex flex-col
                        ${isFullscreenCode ? 'flex-1' : (isCodeOpen ? 'w-[450px]' : 'w-0')}`}>
-            <CodePanel code={generatedCode} onExport={handleOpenInRemix} />
+            <CodePanel 
+               code={generatedCode} 
+               onExport={handleOpenInRemix} 
+               onCompile={handleCompile}
+               compilationResult={compilationResult}
+               isCompiling={isCompiling}
+            />
          </div>
+
       </div>
    )
 }

@@ -1,5 +1,28 @@
 import { ChevronRight, ChevronDown, Trash2, Edit2 } from 'lucide-react';
 
+/**
+ * BlockHeader — the inline config panel for every block type.
+ *
+ * This file is big. Each block type gets its own conditional JSX section
+ * that renders the relevant inputs (dropdowns, text fields, toggles, etc.)
+ * right inside the header bar. It functions as a giant switch on block.type,
+ * but done via JSX conditionals so each section can render its own layout.
+ *
+ * Why stopPropagation is everywhere:
+ *   The entire header div is the drag handle (via dragHandleProps). Without
+ *   stopPropagation on inputs, clicking a text field would start a drag
+ *   instead of focusing the input. So every interactive area calls
+ *   onMouseDown -> e.stopPropagation() to opt out of drag behavior.
+ *
+ * Why the array-copy-mutate pattern:
+ *   When updating params/members arrays, we do:
+ *     const newPs = [...block.data.params];
+ *     newPs[idx].type = e.target.value;
+ *     onUpdate(block.id, { params: newPs });
+ *   This creates a new array reference so React sees it as changed,
+ *   but the inner objects are still the same refs (shallow copy).
+ *   It works because onUpdate spreads into a new data object anyway.
+ */
 export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps }) {
   const isOpen = block.data?.isOpen ?? true;
 
@@ -23,7 +46,12 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           {block.type}
         </span>
 
-        { /* State Var */}
+        {/* ═══════════════════════════════════════════════════════════
+            STATE VARIABLE — type picker, visibility, constant/immutable,
+            name (auto-uppercased if constant, prefixed if immutable),
+            and initial value. The custom-type toggle swaps the dropdown
+            for a free-text input so you can use enums/structs as types.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'State Var' && (
           <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             {!block.data?.isCustomType ? (
@@ -49,6 +77,9 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
                 <option value="address" className="bg-[#1a1a1a] text-white">address</option>
                 <option value="address payable" className="bg-[#1a1a1a] text-white">address payable</option>
                 <option value="bytes1" className="bg-[#1a1a1a] text-white">bytes1</option>
+                <option value="bytes4" className="bg-[#1a1a1a] text-white">bytes4</option>
+                <option value="bytes32" className="bg-[#1a1a1a] text-white">bytes32</option>
+                <option value="bytes" className="bg-[#1a1a1a] text-white">bytes</option>
               </select>
             ) : (
               <input
@@ -92,7 +123,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             </select>
 
             <input
-              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-24 p-0"
+              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-48 p-0"
               value={block.data?.isConst
                 ? (block.data?.name || '').toUpperCase()
                 : (block.data?.isImm
@@ -115,7 +146,12 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        { /* Function */}
+        {/* ═══════════════════════════════════════════════════════════
+            FUNCTION — visibility, mutability, modifier text, virtual/override
+            toggles, and the function name. The virtual/override buttons are
+            tiny pill toggles; override optionally shows a parents input
+            for multi-inheritance like override(A, B).
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Function' && (
           <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <select
@@ -179,7 +215,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             </div>
 
             <input
-              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0 flex-1"
+              className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0 flex-1 min-w-[200px]"
               value={block.data?.name || ''}
               onChange={(e) => onUpdate(block.id, { name: e.target.value })}
               placeholder="myFunction"
@@ -188,7 +224,12 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        { /* Mapping */}
+        {/* ═══════════════════════════════════════════════════════════
+            MAPPING — supports nested mappings via a dynamic types array.
+            Each type gets a dropdown; the "+" button between the second-to-last
+            and last type inserts another nesting level.
+            e.g. [address, address, uint256] → mapping(address => mapping(address => uint256))
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Mapping' && (
           <div className="flex items-center gap-1 ml-1 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-1 bg-white/5 p-1 px-2 rounded-lg border border-white/5">
@@ -209,6 +250,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
                     <option value="bool">bool</option>
                     <option value="string">string</option>
                     <option value="bytes32">bytes32</option>
+                    <option value="bytes">bytes</option>
                   </select>
                   {idx < arr.length - 1 && <span className="text-gray-600 text-[10px]">⇒</span>}
                   {idx === arr.length - 2 && (
@@ -245,7 +287,9 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* While */}
+        {/* ═══════════════════════════════════════════════════════════
+            WHILE LOOP — just a condition input wrapped in parentheses.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'While' && (
           <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500/60 min-w-[70px]">
@@ -263,7 +307,10 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* For Loop */}
+        {/* ═══════════════════════════════════════════════════════════
+            FOR LOOP — three inputs for init, condition, step,
+            separated by semicolons just like how you'd write it.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'For' && (
           <div className="flex items-center gap-1 flex-1 font-code text-[13px]" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500/60 min-w-[70px]">
@@ -297,7 +344,10 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* If & ElseIf */}
+        {/* ═══════════════════════════════════════════════════════════
+            IF / ELSE IF — condition input. The actual else-chaining
+            happens in the code generator, not here.
+           ═══════════════════════════════════════════════════════════ */}
         {(block.type === 'If' || block.type === 'ElseIf') && (
           <div className="flex items-center gap-1 ml-1 text-gray-600 font-mono text-[10px] uppercase font-black">
             <span className="text-gray-400/50">Condition</span>
@@ -313,7 +363,9 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Ternary */}
+        {/* ═══════════════════════════════════════════════════════════
+            TERNARY — condition ? trueVal : falseVal, rendered inline.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Ternary' && (
           <div className="flex items-center gap-2 ml-1 text-gray-500 font-code text-[13px]">
             <span>return</span>
@@ -325,7 +377,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Array */}
+        {/* ═══════════════════════════════════════════════════════════
+            ARRAY — type (or custom type), fixed size (empty = dynamic),
+            visibility, name, and optional initial value.
+            Same custom-type toggle pattern as State Var.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Array' && (
           <div className="flex items-center gap-1 ml-1 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             {!block.data?.isCustomType ? (
@@ -396,7 +452,10 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Enum */}
+        {/* ═══════════════════════════════════════════════════════════
+            ENUM — name + dynamic list of member values.
+            Each member is an editable pill with a × to remove it.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Enum' && (
           <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <input
@@ -428,7 +487,10 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* User-Defined Value Types */}
+        {/* ═══════════════════════════════════════════════════════════
+            USER-DEFINED VALUE TYPE — e.g. "type Duration is uint64;"
+            Just a name and the underlying primitive type.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'User-Defined Value Type' && (
           <div className="flex items-center gap-1 ml-1 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-gray-600 font-bold">TYPE</span>
@@ -451,7 +513,9 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Library */}
+        {/* ═══════════════════════════════════════════════════════════
+            LIBRARY — just a name input. Children go in the body.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Library' && (
           <input
             className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-cyan-400 w-full"
@@ -462,7 +526,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           />
         )}
 
-        {/* Struct BlockHeader.jsx */}
+        {/* ═══════════════════════════════════════════════════════════
+            STRUCT — name + dynamic list of typed members.
+            Each member has a type input and a name input.
+            Same pill-with-× pattern as Enum but with two fields per pill.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Struct' && (
           <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <input
@@ -504,7 +572,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        { /* Modifier, Comment, Logic (Contract/Constructor have specialized headers now) */}
+        {/* ═══════════════════════════════════════════════════════════
+            MODIFIER / COMMENT / LOGIC — these three share the same simple
+            name-only input. Contract and Constructor used to be here too
+            but got their own specialized sections below.
+           ═══════════════════════════════════════════════════════════ */}
         {(block.type === 'Modifier' || block.type === 'Comment' || block.type === 'Logic') && (
           <input
             className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-white focus:text-blue-200 transition-colors w-full p-0"
@@ -516,7 +588,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           />
         )}
 
-        {/* ErrorDef header (Reuse Struct params logic) */}
+        {/* ═══════════════════════════════════════════════════════════
+            ERROR DEFINITION — custom Solidity error with typed params.
+            e.g. error InsufficientBalance(uint256 _balance);
+            Uses the same params pill pattern as Function/Constructor.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'ErrorDef' && (
           <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-rose-500 font-bold">error</span>
@@ -556,7 +632,12 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             <span className="text-gray-600 font-bold">);</span>
           </div>
         )}
-        {/* Require/Assert/Revert headers */}
+        {/* ═══════════════════════════════════════════════════════════
+            REQUIRE / ASSERT / REVERT — error handling statements.
+            Require and Assert get a condition + optional message.
+            Revert just gets a message (or custom error call).
+            The comma between condition and message only shows for Require.
+           ═══════════════════════════════════════════════════════════ */}
         {(block.type === 'Require' || block.type === 'Assert' || block.type === 'Revert') && (
           <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-rose-500 font-bold lowercase text-[14px]">
@@ -588,7 +669,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Event Header */}
+        {/* ═══════════════════════════════════════════════════════════
+            EVENT — declaration with typed params that can be toggled
+            as "indexed" via a tiny pill button. Up to 3 indexed params
+            per event in Solidity, but we don't enforce that here.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Event' && (
           <div className="flex items-center gap-2 flex-1 flex-wrap" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-amber-500 font-bold">event</span>
@@ -648,7 +733,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
             <span className="text-gray-600 font-bold">);</span>
           </div>
         )}
-        {/* Emit Header */}
+        {/* ═══════════════════════════════════════════════════════════
+            EMIT — fires an event. Just a free-text statement input
+            like "Transfer(msg.sender, 100)". No structured params here,
+            the user types the full emit expression.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Emit' && (
           <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-amber-500 font-bold italic">emit</span>
@@ -657,7 +746,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Interface */}
+        {/* ═══════════════════════════════════════════════════════════
+            INTERFACE — just a name. Functions inside it automatically
+            get semicolons instead of bodies (handled in the generator
+            via the isInterface flag).
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Interface' && (
           <input
             className="font-code bg-transparent border-none outline-none font-bold text-[15px] text-sky-400 w-full"
@@ -668,7 +761,12 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           />
         )}
 
-        { /* Contract */}
+        {/* ═══════════════════════════════════════════════════════════
+            CONTRACT — name + inheritance field. The inheritance field
+            is a comma-separated string like "ERC20, Ownable" that gets
+            baked into "contract MyToken is ERC20, Ownable { ... }".
+            The generator also auto-adds OpenZeppelin imports based on this.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Contract' && (
           <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <input
@@ -689,7 +787,11 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Constructor Specialized UI */}
+        {/* ═══════════════════════════════════════════════════════════
+            CONSTRUCTOR — mutability dropdown (payable or not).
+            Params and initializers (like "ERC20('MyToken', 'MTK')")
+            are handled by the shared params section below.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Constructor' && (
           <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
             <select
@@ -703,12 +805,18 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        {/* Receive */}
+        {/* ═══════════════════════════════════════════════════════════
+            RECEIVE — special function for receiving plain ETH transfers.
+            Always external + payable, no config needed. Just a label.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Receive' && (
           <span className="text-gray-500 text-[12px] font-medium uppercase tracking-widest italic ml-2">always external + payable</span>
         )}
 
-        {/* Fallback */}
+        {/* ═══════════════════════════════════════════════════════════
+            FALLBACK — catches calls to functions that don't exist.
+            Always external, optionally payable.
+           ═══════════════════════════════════════════════════════════ */}
         {block.type === 'Fallback' && (
           <div className="flex items-center gap-2" onMouseDown={(e) => e.stopPropagation()}>
             <select
@@ -723,7 +831,12 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
           </div>
         )}
 
-        { /* Params to break your head */}
+        {/* ═══════════════════════════════════════════════════════════
+            SHARED PARAMS SECTION — used by Function, Modifier, and
+            Constructor. Each param is a {type, name} pill you can
+            add/remove. Constructor also gets an "initializers" input
+            for base contract calls like ERC20("Name", "SYM").
+           ═══════════════════════════════════════════════════════════ */}
         {(block.type === 'Modifier' || block.type === 'Function' || block.type === 'Constructor') && (
           <div className="flex items-center gap-1 ml-2">
             <span className="text-gray-600 font-bold">(</span>
@@ -775,7 +888,7 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
         )}
       </div>
 
-      { /* hmm what does this do? remove block i think */}
+      {/* ═══════ BLOCK ID + DELETE BUTTON (pinned to the right) ═══════ */}
       <div className="flex items-center gap-4 flex-shrink-0 ml-auto pl-4 border-l border-white/5 bg-black/5">
         <div className="text-[10px] text-gray-600 font-mono opacity-40">
           #{block.id.toString().slice(-4)}

@@ -52,18 +52,21 @@ The app runs at `http://localhost:5173` by default.
 
 ## Block Types
 
-The following block types are planned to be implemented (for now):
+The following block types are currently implemented:
 
 | Block | Description |
 |---|---|
-| Contract | Root block, everything else nests inside it. This generates the contract declaration and pragma. |
-| State Variable | Typed storage variable with configurable visibility. Supports `uint256`, `address`, `bool`, `string`. |
-| Mapping | Key-value storage. Configurable key type, value type, and visibility. |
-| Constructor | Initializer function. Supports dynamic parameter rows. |
-| Function | Configurable visibility, mutability, parameters, and return type. |
-| Modifier | Named access control modifier. Attaches to function blocks. |
-| Event | Typed event declaration with indexed parameter support. |
-| Emit | Event emission inside a function. References defined events. |
+| Contract / Library / Interface | Root blocks, everything else nests inside. Defines the core contract, library, or interface. |
+| State Var / Array / Mapping | Storage variables with configurable type, visibility, fixed/dynamic size, constants, and immutability. |
+| Enum / Struct / Custom Type | Advanced data structures and user-defined value types. |
+| Constructor | Initializer function. Supports dynamic parameter rows and base contract initializers. |
+| Function | Configurable visibility, mutability, parameters, modifiers, virtual/override, and return types. |
+| Modifier | Named access control or execution wrapper. |
+| Control Flow | Blocks for `If`, `ElseIf`, `Else`, `Ternary`, `For`, and `While` logic loops and conditions. |
+| Error Handling | Blocks for `Require`, `Assert`, `Revert`, and custom `ErrorDef` declarations. |
+| Event / Emit | Event declarations and event emissions inside functions. |
+| Receive / Fallback | Special functions for handling incoming raw Ether and unknown function calls. |
+| Logic / Comment | Free-form inline logic code snippets and standard comment blocks. |
 
 Generated code is valid Solidity `^0.8.0`.
 
@@ -114,7 +117,7 @@ The block tree is used for Solidity generation for the `useCodeGenerator` functi
 - [ ] In-browser compilation via solc-js
 - [ ] Local Hardhat deployment and function calling
 - [X] Function body blocks (assignments, conditionals, loops)
-- [ ] Inheritance support
+- [X] Inheritance support
 - [ ] Testnet deployment (Sepolia)
 - [ ] Shareable contracts via URL encoding
 - [ ] OpenZeppelin block templates
