@@ -77,7 +77,7 @@ function App() {
 
        // Initialize worker if needed
        if (!compilerWorker) {
-          compilerWorker = new Worker(new URL('/compiler-worker.js', import.meta.url));
+          compilerWorker = new Worker(new URL('./utils/compiler-worker.js', import.meta.url));
        }
        
        compilerWorker.postMessage({ sourceCode: generatedCode });

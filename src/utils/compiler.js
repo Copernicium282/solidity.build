@@ -2,7 +2,7 @@
  * DEAD FILE / PLACEHOLDER
  * 
  * The actual compiler logic has been moved to the Web Worker 
- * implementation located at `/public/compiler-worker.js`. 
+ * implementation located at `/src/utils/compiler-worker.js`. 
  * This file is kept temporarily but the compileSolidity export inside 
  * is just a non-functional stub.
  */
