@@ -5,8 +5,8 @@ import SmartBlock from './blocks/SmartBlock';
 
 export default function Workspace({ blocks, isCodeOpen, onToggleCode, onUpdateBlock, onRemoveBlock, solVersion, setSolVersion, ethPrice, gasPrice, onOpenInRemix }) {
 
-  // Maps block types to their specific Tailwind color tokens.
-  // These tokens (e.g., bg-contract, border-func) are globally defined in index.css.
+  // Maps block types to Tailwind tokens.
+  // Tokens (e.g., bg-contract) global in index.css.
   const getBlockColor = (type) => {
     switch (type) {
       case 'Contract': return 'border-contract bg-contract/10';

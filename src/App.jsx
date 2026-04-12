@@ -6,9 +6,8 @@ import CodePanel from "./components/CodePanel";
 import { DndContext, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { generateSolidity as getSolidity } from "./utils/solidityGenerator";
 
-// Persistent worker instance to keep library cache across compilations
-// Setting this outside the component prevents the worker from being destroyed
-// and recreated every time App re-renders, keeping the CDN cache hot.
+// Preserve the compiler web worker instance in the global scope.
+// This prevents it from being destroyed and recreated on every re-render, keeping the library cache active.
 let compilerWorker = null;
 
 function App() {
@@ -25,7 +24,7 @@ function App() {
    useEffect(() => {
       const fetchPrices = async () => {
          try {
-            // CoinGecko ETH Price with Demo API Key
+            // CoinGecko ETH price. Demo key.
             const cgKey = import.meta.env.VITE_COINGECKO_API_KEY || "";
             const ethRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd${cgKey ? `&x_cg_demo_api_key=${cgKey}` : ''}`);
             const ethData = await ethRes.json();
@@ -33,13 +32,13 @@ function App() {
                setEthPrice(`$${ethData.ethereum.usd.toLocaleString()}`);
             }
 
-            // Etherscan Gas Tracker with V2 API Key
+            // Etherscan gas tracker. V2 key.
             const etherscanKey = import.meta.env.VITE_ETHERSCAN_API_KEY;
             if (etherscanKey) {
                const gasRes = await fetch(`https://api.etherscan.io/v2/api?chainid=1&module=gastracker&action=gasoracle&apikey=${etherscanKey}`);
                const gasData = await gasRes.json();
                if (gasData.result?.ProposeGasPrice) {
-                  // Normalize if a long decimal
+                  // Normalize long decimal.
                   const price = parseFloat(gasData.result.ProposeGasPrice);
                   setGasPrice(`${price < 1 ? price.toFixed(2) : Math.round(price)} Gwei`);
                }
@@ -50,18 +49,18 @@ function App() {
       };
 
       fetchPrices();
-      const interval = setInterval(fetchPrices, 60000); // Update every minute
+      const interval = setInterval(fetchPrices, 60000); // Update 1m.
       return () => clearInterval(interval);
    }, []);
 
    const handleOpenInRemix = () => {
-      // Base64 encode Unicode strings for remix
+      // Base64 encode the unicode string to safely pass it into the Remix URL hash.
       const bytes = new TextEncoder().encode(generatedCode);
       const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
       const b64 = btoa(binString);
 
-      // Guard against browser URL limits (typically safe up to ~2000-8000 max chars)
-      // If a contract is massive, the base64 string will just get truncated silently by the browser.
+      // Modern browsers typically limit URL lengths to ~2000-8000 characters.
+      // If the generated contract is massively complex, exporting via URL limits will silently truncate base64.
       if (b64.length > 7000) {
          alert("Contract is too large to export via URL. Please copy the code directly to Remix.");
          return;
@@ -75,7 +74,7 @@ function App() {
        setIsCompiling(true);
        setCompilationResult(null);
 
-       // Initialize worker if needed
+       // Init worker if none.
        if (!compilerWorker) {
           compilerWorker = new Worker(new URL('./utils/compiler-worker.js', import.meta.url));
        }
@@ -109,12 +108,11 @@ function App() {
       const activeId = String(active.id);
       const overId = String(over.id);
 
-      // Clone tree
+      // Create a fresh clone of the tree to safely mutate structure without directly mutating state.
       const newBlocks = structuredClone(blocks);
 
       /**
-       * Recursively traverses the nested array to find a block by ID,
-       * removes it from its parent's array, and returns the removed block.
+       * Recursive find block by ID, remove from parent, return it.
        */
       const findAndRemove = (list, id) => {
          for (let i = 0; i < list.length; i++) {
@@ -127,8 +125,7 @@ function App() {
       };
 
       /**
-       * Recursively searches for a block by ID and returns its parent array
-       * and its index within that array (used for dropping "before" another block).
+       * Recursive find block by ID. Return parent array + index (for insert before).
        */
       const findBlockLocation = (list, id) => {
          for (let i = 0; i < list.length; i++) {
@@ -142,8 +139,7 @@ function App() {
       };
 
       /**
-       * Simple recursive search to fetch a block reference by ID 
-       * (used to find the target container when dropping inside a block).
+       * Recursive find block by ID (for drop target).
        */
       const findBlock = (list, id) => {
          for (const b of list) {
@@ -159,12 +155,12 @@ function App() {
       const snatched = findAndRemove(newBlocks, activeId);
       if (!snatched) return;
 
-      // Determine where to insert
+      // Find insert target.
       if (overId === 'workspace-drop') {
-         // Dropped on empty workspace — add to root
+         // Empty workspace drop → root.
          newBlocks.push(snatched);
       } else if (overId.startsWith('drop-')) {
-         // Dropped on a container's drop zone — insert as child
+         // Container drop zone → child.
          const parentId = overId.slice(5);
          const parent = findBlock(newBlocks, parentId);
          if (parent) {
@@ -174,7 +170,7 @@ function App() {
             newBlocks.push(snatched);
          }
       } else {
-         // Dropped on another block — insert before it
+         // Block drop → insert before.
          const location = findBlockLocation(newBlocks, overId);
          if (location) {
             location.parent.splice(location.index, 0, snatched);
@@ -195,9 +191,8 @@ function App() {
    }, [blocks, solVersion]);
 
    /**
-    * Injects a new block into the root of the workspace.
-    * Uses a switch statement to populate `initialData` with safe defaults 
-    * so the block renders immediately without crashing.
+    * Inject new block to root.
+    * Switch logic populated `initialData` defaults → prevent render crash.
     */
    const addBlock = (type) => {
       let initialData = { isOpen: true };
@@ -214,7 +209,7 @@ function App() {
             break;
          case 'Mapping':
             initialData.name = "myMap";
-            initialData.types = ["address", "uint256"]; // New array structure
+            initialData.types = ["address", "uint256"]; // New array struct.
             initialData.visibility = "public";
             break;
          case 'While':
@@ -236,7 +231,7 @@ function App() {
             break;
          case 'Array':
             initialData.itemType = "uint256";
-            initialData.fixedSize = ""; // dynamic by default
+            initialData.fixedSize = ""; // Default dynamic.
             initialData.name = "arr";
             break;
          case 'Enum':
@@ -261,10 +256,10 @@ function App() {
          case 'Require':
          case 'Assert':
             initialData.condition = "x > 0";
-            initialData.message = ""; // Start with empty message
+            initialData.message = ""; // Default empty msg.
             break;
          case 'Revert':
-            initialData.message = "Error"; // Default error string
+            initialData.message = "Error"; // Default error msg.
             break;
          case 'Event':
             initialData.name = "Transfer";
@@ -277,7 +272,7 @@ function App() {
             initialData.name = "ICounter";
             break;
          case 'Receive':
-            initialData.isOpen = true; // Always payable
+            initialData.isOpen = true; // Always payable.
             break;
          case 'Fallback':
             initialData.mutability = 'payable';
@@ -286,9 +281,9 @@ function App() {
             break;
       }
 
-      // ═══════ TEMPLATES ═══════
-      // Templates aren't single primitives; they are pre-assembled nested 
-      // trees of blocks injected all at once. Like dropping a prefab.
+      // --- Templates ---
+      // Templates are pre-assembled blocks that inject an entire nested structure (like an ERC20 token setup)
+      // rather than creating a single empty block.
       if (type === 'ERC20 Token') {
          const tId = Date.now();
          const newBlock = {
@@ -355,9 +350,9 @@ function App() {
    const updateBlock = (id, newData) => {
       const walk = (list) =>
          list.map(b => {
-            // surface-level check
+            // Surface check.
             if (b.id === id) return { ...b, data: { ...b.data, ...newData } };
-            // Check the kids. (lmao)
+            // Check children.
             if (b.children) return { ...b, children: walk(b.children) };
             return b;
          });
@@ -366,8 +361,8 @@ function App() {
 
    const removeBlock = (id) => {
       const walk = (list) =>
-         list.filter(b => b.id !== id) // Remove if match
-            .map(b => b.children ? { ...b, children: walk(b.children) } : b); // Recurse
+         list.filter(b => b.id !== id) // Remove match.
+            .map(b => b.children ? { ...b, children: walk(b.children) } : b); // Recurse.
       setBlocks(walk(blocks));
    };
 

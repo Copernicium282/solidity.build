@@ -5,10 +5,9 @@ importScripts('https://binaries.soliditylang.org/bin/soljson-v0.8.26+commit.8a97
 let solcCompile = null;
 
 /*
- * Polling interval for compiler initialization.
- * The soljson.js binary is a massive WASM module that loads asynchronously.
- * We must wait for the Emscripten `cwrap` function to become available 
- * on the global scope before we can bind the C++ 'solidity_compile' function.
+ * Polling interval for compiler init.
+ * soljson.js WASM loads async. Wait Emscripten `cwrap` globally
+ * to bind C++ 'solidity_compile'.
  */
 let initInterval = setInterval(function() {
     let target = self.Module;
@@ -21,22 +20,21 @@ let initInterval = setInterval(function() {
             solcCompile = target.cwrap('solidity_compile', 'string', ['string']);
             clearInterval(initInterval);
         } catch (e) {
-            // ignore and try again next tick
+            // Ignore. Retry next tick.
         }
     }
 }, 100);
 
-// In-memory cache for downloaded dependencies (like OpenZeppelin contracts).
-// Because this worker is instantiated once as a singleton in App.jsx,
-// this cache stays alive across multiple user compilation requests, dramatically
-// speeding up subsequent compiles by avoiding redundant CDN fetches.
+// In-memory cache for downloaded deps (OpenZeppelin).
+// Singleton worker App.jsx maintains cache across requests.
+// Speed up compiles, skip CDN fetches.
 const libraryCache = new Map();
 
 function resolvePath(base, relative) {
     let stack = base.split("/");
     let parts = relative.split("/");
     
-    // remove file name from base
+    // Remove file name from base.
     stack.pop(); 
     
     for (let i = 0; i < parts.length; i++) {
@@ -57,7 +55,7 @@ function resolvePath(base, relative) {
 
 async function resolveImports(sources) {
     let newSources = Object.assign({}, sources);
-    let processed = []; // Track visited files to prevent infinite loops on circular imports
+    let processed = []; // Track visited files → prevent circular import infinite loops.
     let toProcess = Object.keys(sources);
 
     while (toProcess.length > 0) {
@@ -70,50 +68,16 @@ async function resolveImports(sources) {
 
         let content = newSources[fileName].content;
         
-        // BUG FIX: Strip multi-line comments (/* ... */) before scanning for imports
-        let noBlockComments = content.replace(/\/\*[\s\S]*?\*\//g, '');
+        // Strip block and line comments to avoid processing phantom imports.
+        const cleanContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
-        // Strip single-line comments (// ...) to avoid grabbing phantom imports
-        let lines = noBlockComments.split('\n');
-        let cleanLines = [];
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            if (line.trim().startsWith('//')) {
-                continue;
-            }
-            cleanLines.push(line);
-        }
-        let cleanContent = cleanLines.join('\n');
-        
-        /*
-         * DEPENDENCY RESOLUTION STRATEGY:
-         * We do a naive string split on "import " instead of a full AST parse.
-         * This is fast but has limitations (e.g. multi-line imports might break).
-         * 
-         * We intercept import paths and reroute them to JsDelivr CDN.
-         * Be aware: This currently assumes `@openzeppelin/` packages and specifically
-         * formatted `github.com/` URLs. Deeply nested arbitrary dependencies
-         * will likely fail to resolve.
-         */
-        let importPaths = [];
-        let tokens = cleanContent.split('import ');
-        for (let i = 1; i < tokens.length; i++) {
-            let token = tokens[i];
-            
-            // The path is typically inside the first set of quotes
-            let firstQuote = token.indexOf('"');
-            if (firstQuote === -1) {
-                firstQuote = token.indexOf("'");
-            }
-            
-            if (firstQuote !== -1) {
-                let quoteChar = token.charAt(firstQuote);
-                let secondQuote = token.indexOf(quoteChar, firstQuote + 1);
-                
-                if (secondQuote !== -1) {
-                    importPaths.push(token.substring(firstQuote + 1, secondQuote));
-                }
-            }
+        // Extract clean import paths.
+        // Intercepts paths to route to JsDelivr CDN (assumes @openzeppelin/ or github.com/ URLs).
+        const importPaths = [];
+        const importRegex = /import\s+(?:\{[^}]+\}\s+from\s+)?['"]([^'"]+)['"]/g;
+        let match;
+        while ((match = importRegex.exec(cleanContent)) !== null) {
+            importPaths.push(match[1]);
         }
         
         for (let i = 0; i < importPaths.length; i++) {
@@ -126,18 +90,17 @@ async function resolveImports(sources) {
                 url = "https://cdn.jsdelivr.net/npm/" + importPath;
             } 
             else if (importPath.startsWith('github.com/')) {
-                // Support github.com/owner/repo/blob/main/Path.sol -> CDN
+                // Support github → CDN.
                 url = importPath.replace('github.com/', 'https://cdn.jsdelivr.net/gh/').replace('/blob/', '@');
             } 
             else if (importPath.startsWith('.') && fileName.includes('/')) {
                 resolvedKey = resolvePath(fileName, importPath);
                 
-                // We assume relative imports stay within the same base URL (e.g. JSDelivr for OZ)
+                // Assume relative imports share base URL.
                 if (fileName.startsWith('@openzeppelin/')) {
                     url = "https://cdn.jsdelivr.net/npm/" + resolvedKey;
                 } else {
-                    // Fallback for other domains if we can track them
-                    // For now, OZ is the primary use case
+                    // Fallback domains untracked. OZ primary.
                 }
             }
 
@@ -169,7 +132,7 @@ async function resolveImports(sources) {
 onmessage = async function(e) {
     let sourceCode = e.data.sourceCode;
     
-    // Polling function to wait for compiler to load
+    // Poll for compiler load.
     let run = async function() {
         if (!solcCompile) { 
             setTimeout(run, 100); 

@@ -4,9 +4,8 @@ import { useDroppable } from '@dnd-kit/core';
 
 export default function BlockBody({ block, onUpdate, onRemove, getColor }) {
   // ═══════ DROP ZONE CONFIG ═══════
-  // Determines if this block type is allowed to accept nested children.
-  // If true, we enable the dnd-kit droppable node ref. If false, dropping
-  // an item on this block will just reorder it alongside (sibling), instead of inside.
+  // Droppable nested children check.
+  // True: enable dnd-kit node ref. False: drop = reorder sibling.
   const isContainer = ['Contract', 'Function', 'Constructor', 'Modifier', 'While', 'For', 'If', 'ElseIf', 'Else', 'Library', 'Interface', 'Receive', 'Fallback'].includes(block.type);
 
   const { setNodeRef, isOver } = useDroppable({
@@ -19,8 +18,7 @@ export default function BlockBody({ block, onUpdate, onRemove, getColor }) {
   return (
     <div className="border-t border-white/5">
       { /* FUNCTION SPECIFIC: Returns & Body */}
-      {/* The onMouseDown stopPropagation prevents the outer drag sensor from 
-          intercepting clicks meant for these internal text inputs. */}
+      {/* onMouseDown stopPropagation: block drag sensor from stealing input click. */}
       {block.type === 'Function' && (
         <div className="px-14 py-4 bg-black/20 flex flex-col gap-6 pb-8" onMouseDown={(e) => e.stopPropagation()}>
           {/* Returns */}

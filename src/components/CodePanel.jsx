@@ -60,7 +60,7 @@ export default function CodePanel({ code = "", onExport, onCompile, compilationR
               horizontalScrollbarSize: 8
             }
           }}
-          value={code || "// Drag blocks from the explorer to generate code..."}
+          value={code || "// Drag block to generate code..."}
         />
       </div>
 
