@@ -6,8 +6,7 @@ import CodePanel from "./components/CodePanel";
 import { DndContext, pointerWithin, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { generateSolidity as getSolidity } from "./utils/solidityGenerator";
 
-// Preserve the compiler web worker instance in the global scope.
-// This prevents it from being destroyed and recreated on every re-render, keeping the library cache active.
+// keep worker alive outside react lifecycle so the cache doesnt die
 let compilerWorker = null;
 
 function App() {
@@ -54,13 +53,12 @@ function App() {
    }, []);
 
    const handleOpenInRemix = () => {
-      // Base64 encode the unicode string to safely pass it into the Remix URL hash.
+      // b64 encode for remix hash payload
       const bytes = new TextEncoder().encode(generatedCode);
       const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
       const b64 = btoa(binString);
 
-      // Modern browsers typically limit URL lengths to ~2000-8000 characters.
-      // If the generated contract is massively complex, exporting via URL limits will silently truncate base64.
+      // warn if over typical browser URL limits (approx 7k chars) otherwise silent fail
       if (b64.length > 7000) {
          alert("Contract is too large to export via URL. Please copy the code directly to Remix.");
          return;
@@ -108,7 +106,7 @@ function App() {
       const activeId = String(active.id);
       const overId = String(over.id);
 
-      // Create a fresh clone of the tree to safely mutate structure without directly mutating state.
+      // deep clone before mutate
       const newBlocks = structuredClone(blocks);
 
       /**
@@ -281,9 +279,7 @@ function App() {
             break;
       }
 
-      // --- Templates ---
-      // Templates are pre-assembled blocks that inject an entire nested structure (like an ERC20 token setup)
-      // rather than creating a single empty block.
+      // --- PREFABS ---
       if (type === 'ERC20 Token') {
          const tId = Date.now();
          const newBlock = {

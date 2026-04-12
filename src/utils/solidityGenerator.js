@@ -1,12 +1,8 @@
-/**
- * Solidity Code Generator
- * Traverses the visual block tree and generates valid Solidity code strings.
- */
 
 export const generateSolidity = (blocks, solVersion) => {
     let inheritances = new Set();
     
-    // Auto-inject OZ imports by scanning Contract blocks.
+    // scan for OZ deps
     const walkForInheritance = (list) => {
         for (const block of list) {
             if (block.data?.inheritance) {
@@ -38,7 +34,7 @@ export const generateSolidity = (blocks, solVersion) => {
     }
     if (hasImports) codeSnippet += "\n";
 
-    // Defines how each block type is transformed into Solidity code.
+    // map block types to codegen fns
     const BlockTransformers = {
         Contract: (block, indent, renderList) => {
             const inherits = block.data?.inheritance ? " is " + block.data.inheritance : "";

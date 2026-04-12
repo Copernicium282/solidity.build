@@ -68,11 +68,10 @@ async function resolveImports(sources) {
 
         let content = newSources[fileName].content;
         
-        // Strip block and line comments to avoid processing phantom imports.
+        // nuke comments
         const cleanContent = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
 
-        // Extract clean import paths.
-        // Intercepts paths to route to JsDelivr CDN (assumes @openzeppelin/ or github.com/ URLs).
+        // find import paths for CDN routing
         const importPaths = [];
         const importRegex = /import\s+(?:\{[^}]+\}\s+from\s+)?['"]([^'"]+)['"]/g;
         let match;
