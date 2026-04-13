@@ -1,4 +1,12 @@
-import { ChevronRight, ChevronDown, Trash2, Edit2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
+import {
+  StateVarField, FunctionField, MappingField, WhileField, ForField,
+  IfElseIfField, TernaryField, ArrayField, EnumField, UserDefinedValueTypeField,
+  LibraryField, StructField, ModifierCommentLogicField, ErrorDefField,
+  RequireAssertRevertField, EventField, EmitField, InterfaceField,
+  ContractField, ConstructorField, ReceiveField, FallbackField,
+  ModifierFunctionConstructorField
+} from './headers/BlockFields';
 
 export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps }) {
   const isOpen = block.data?.isOpen ?? true;
@@ -35,8 +43,8 @@ export default function BlockHeader({ block, onUpdate, onRemove, dragHandleProps
         { block.type === 'Library'  && <LibraryField block={block} onUpdate={onUpdate} /> }
         { block.type === 'Struct'  && <StructField block={block} onUpdate={onUpdate} /> }
         { (block.type === 'Modifier' || block.type === 'Comment' || block.type === 'Logic')  && <ModifierCommentLogicField block={block} onUpdate={onUpdate} /> }
-        { block.type === 'ErrorDef'  && <Errordef Field block={block} onUpdate={onUpdate} /> }
-        { (block.type === 'Require' || block.type === 'Assert' || block.type === 'Revert')  && <RequireAssertRevert Field block={block} onUpdate={onUpdate} /> }
+        { block.type === 'ErrorDef'  && <ErrorDefField block={block} onUpdate={onUpdate} /> }
+        { (block.type === 'Require' || block.type === 'Assert' || block.type === 'Revert')  && <RequireAssertRevertField block={block} onUpdate={onUpdate} /> }
         { block.type === 'Event'  && <EventField block={block} onUpdate={onUpdate} /> }
         { block.type === 'Emit'  && <EmitField block={block} onUpdate={onUpdate} /> }
         { block.type === 'Interface'  && <InterfaceField block={block} onUpdate={onUpdate} /> }

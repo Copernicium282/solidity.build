@@ -511,7 +511,7 @@ export function ModifierCommentLogicField({ block, onUpdate }) {
   );
 }
 
-export function Errordef Field({ block, onUpdate }) {
+export function ErrorDefField({ block, onUpdate }) {
   return (
     <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-rose-500 font-bold">error</span>
@@ -553,7 +553,7 @@ export function Errordef Field({ block, onUpdate }) {
   );
 }
 
-export function RequireAssertRevert Field({ block, onUpdate }) {
+export function RequireAssertRevertField({ block, onUpdate }) {
   return (
     <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-rose-500 font-bold lowercase text-[14px]">
@@ -652,8 +652,14 @@ export function EmitField({ block, onUpdate }) {
   return (
     <div className="flex items-center gap-2 flex-1" onMouseDown={(e) => e.stopPropagation()}>
             <span className="text-amber-500 font-bold italic">emit</span>
-            <input className="..." value={block.data?.statement} placeholder="Log(msg.sender)" />
-            <span className="text-amber-500 font-bold">);</span>
+            <input
+              className="font-code bg-transparent border-none outline-none text-[13px] text-white/80 w-40"
+              value={block.data?.statement || ''}
+              onChange={(e) => onUpdate(block.id, { statement: e.target.value })}
+              placeholder="Log(msg.sender)"
+              spellCheck="false"
+            />
+            <span className="text-amber-500 font-bold">;</span>
           </div>
   );
 }

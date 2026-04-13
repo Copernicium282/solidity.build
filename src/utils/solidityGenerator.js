@@ -210,6 +210,16 @@ export const generateSolidity = (blocks, solVersion) => {
             return `\n${indent}fallback() external${mut} {\n` + 
                    renderList(block.children || [], indent + "    ", false) + 
                    `${indent}}\n`;
+        },
+        "User-Defined Value Type": (block, indent) => {
+            const name = block.data?.name || "Duration";
+            const subType = block.data?.subType || "uint64";
+            return `${indent}type ${name} is ${subType};\n`;
+        },
+        ErrorDef: (block, indent) => {
+            const name = block.data?.name || "MyError";
+            const args = (block.data?.params || []).map(p => `${p.type} ${p.name}`).join(", ");
+            return `${indent}error ${name}(${args});\n`;
         }
     };
 
