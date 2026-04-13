@@ -30,7 +30,7 @@ Inspired by [eth.build](https://eth.build) and [MIT Scratch](https://scratch.mit
 
 Learning Solidity is somewhat hard. Most of the tools such as Remix, Hardhat and Foundry assumes that you already understand the language. Solidity by Example is good and gets the job done, but it is still text-based; I also plan on including those as example modules in the future that can be imported to make the learning experience much better.
 
-solidity.build aims to bridge that gap. Each Solidity concept - state variables, functions, modifiers, events - is represented as a block (to be made draggable in a future commit). You can snap them together, fill in the fields, and the app generates the corresponding Solidity code on the right. The goal is not to replace writing code, but to make the structure of a contract more intuitive before writing one yourself.
+solidity.build aims to bridge that gap. Each Solidity concept - state variables, functions, modifiers, events - is represented as a draggable block. You can snap them together, fill in the fields, and the app generates the corresponding Solidity code on the right. The goal is not to replace writing code, but to make the structure of a contract more intuitive before writing one yourself.
 
 ## Getting Started
 
@@ -72,7 +72,9 @@ Generated code is valid Solidity `^0.8.0`.
 
 ## Local Deployment
 
-solidity.build compiles contracts in the browser using [solc-js](https://github.com/ethereum/solc-js) and deploys to a local Hardhat node via ethers.js. All purely Client-Side.
+solidity.build compiles contracts in the browser using [solc-js](https://github.com/ethereum/solc-js). All purely Client-Side.
+
+*(Note: Deployment to a local Hardhat node via ethers.js is a planned feature. Once implemented, the workflow below will apply:)*
 
 To set up a local node:
 
@@ -94,27 +96,25 @@ Testnet deployment (Sepolia) is planned for a future release.
 - **solc-js** — in-browser Solidity compilation, no backend required
 - **ethers.js v6** — local deployment and contract interaction
 - **Tailwind CSS** — styling
-- **localStorage** — contract persistence
 
 ## Project Structure
 
 ```
 src/
-  blocks/        individual block components
-  components/    canvas, palette, code panel, deploy panel
-  hooks/         useCodeGenerator, useCompiler, useDeployer, useContractStorage
-  context/       BlockTreeContext, DeployContext
-  utils/         code templates, block registry, validators
-  pages/         BuilderPage, ExamplesPage
+  components/    Workspace, Palette, CodePanel, Sidebar
+    blocks/      SmartBlock, BlockBody, and property forms
+  utils/         solidityGenerator.js, compiler-worker.js
+  App.jsx        Main application state and composition
+  main.jsx       React entry root
 ```
 
-The block tree is used for Solidity generation for the `useCodeGenerator` function, which maps the entire tree to a code string, which is used for Compilation and Deployment.
+The block tree is used for Solidity generation for the `generateSolidity` function, which maps the entire tree to a code string, which is used for Compilation and Deployment.
 
 ## Roadmap (also to be extended in the future)
 
 - [X] Visual block editor with drag and drop
 - [X] Live Solidity code generation
-- [ ] In-browser compilation via solc-js
+- [X] In-browser compilation via solc-js
 - [ ] Local Hardhat deployment and function calling
 - [X] Function body blocks (assignments, conditionals, loops)
 - [X] Inheritance support
